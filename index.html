@@ -4,17 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>旅遊行程規劃工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#f6f7f9; --card:#fff; --ink:#1f2933; --muted:#6b7785; --line:#e3e7ec;
-    --accent:#2f6fde; --accent-soft:#e8f0fd; --good:#1f8a5b; --bad:#c2410c;
-    --meal:#fff7e6; --stay:#f3effe; --radius:10px;
+    /* 品牌色：經典藍 #2778BE、活力藍 #409AD6、柔粉 #F4ADAD、暖黃 #FCD475、嫩綠 #A4D5BB、裸橘 #F7B88E */
+    --blue:#2778BE; --blue2:#409AD6; --pink:#F4ADAD; --yellow:#FCD475; --green:#A4D5BB; --orange:#F7B88E;
+    --bg:#f4f8fc; --card:#fff; --ink:#1f2933; --muted:#6b7785; --line:#dde7f1;
+    --accent:#2778BE; --accent-soft:#e3eef8; --good:#2778BE; --bad:#1f2933;
+    --meal:#fef6e3; --stay:#edf7f1; --radius:10px;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    font-family:"Avenir Next","Noto Sans TC","Noto Sans CJK TC","Source Han Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
     font-size:15px;line-height:1.5}
-  header.top{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  header.top{background:var(--blue);color:#fff;position:sticky;top:0;z-index:5}
+  header.top button{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35);color:#fff}
+  header.top button:hover{background:rgba(255,255,255,.22);border-color:#fff}
+  header.top button.primary{background:#fff;color:var(--blue);border-color:#fff}
+  header.top button.danger{color:#fff}
   .wrap{max-width:1080px;margin:0 auto;padding:16px}
   .top .wrap{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 16px}
   .brand{font-weight:700;font-size:18px}
@@ -26,7 +34,8 @@
   button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   button.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:4px 8px}
   button.ghost:hover:not(:disabled){color:var(--ink);background:#f0f2f5}
-  button.danger{color:var(--bad)}
+  button.danger{color:var(--ink)}
+  button.danger:hover{background:rgba(244,173,173,.35);border-color:var(--pink)}
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
   h2{font-size:16px;margin:0 0 12px}
   label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
@@ -45,12 +54,13 @@
   .stat{background:var(--bg);border-radius:8px;padding:10px 12px}
   .stat .k{font-size:12px;color:var(--muted)}
   .stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
-  .over{color:var(--bad)} .under{color:var(--good)}
+  .over{background:rgba(244,173,173,.55);border-radius:4px;padding:0 4px;font-weight:700;color:var(--ink)}
+  .under{color:var(--blue)}
 
   .stats-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .seg button{border:0;border-radius:0;padding:6px 12px}
-  .seg button.on{background:var(--accent);color:#fff}
+  .seg button.on{background:var(--blue);color:#fff}
   .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
   @media (max-width:720px){.stats-grid{grid-template-columns:1fr}}
   h3.st{font-size:14px;margin:8px 0 0}
@@ -71,7 +81,7 @@
 
   .day{padding:0;overflow:hidden}
   .day-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
-    padding:12px 16px;background:var(--accent-soft);cursor:pointer;user-select:none}
+    padding:12px 16px;background:var(--accent-soft);border-left:4px solid var(--blue);cursor:pointer;user-select:none}
   .day-title{font-weight:700}
   .day-title small{font-weight:400;color:var(--muted);margin-left:6px}
   .day-sum{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -91,7 +101,7 @@
   .item .ttl.ph{color:#a6b0bb;font-weight:400}
   .item .has-desc{color:var(--muted);font-size:12px;flex:0 0 auto}
   .tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;white-space:nowrap;flex:0 0 auto;
-    background:#eef1f5;color:#334155}
+    background:#eef1f5;color:var(--ink);overflow:hidden}
   .item .amt{text-align:right;font-variant-numeric:tabular-nums;line-height:1.25}
   .item .amt span{display:block;font-size:11px;color:var(--muted)}
   .item .amt b{font-weight:600;font-size:14px}
@@ -133,32 +143,108 @@
   .stay-box .hint{margin:6px 0 0}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .chips button{padding:4px 9px;font-size:13px;border-radius:99px;background:#fff}
-  .chips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chips button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* ================= 依品牌識別手冊的版面 ================= */
+  body{background:#fff;letter-spacing:.01em}
+  .wrap{max-width:1040px}
+  /* 封面式藍色區塊 */
+  header.top{position:static;background:var(--blue)}
+  .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;padding:44px 24px 30px}
+  .hero h1{margin:0;font-size:30px;font-weight:700;letter-spacing:.06em;color:#fff}
+  .hero .pill{display:inline-block;margin-top:14px;border:1px solid #fff;border-radius:99px;padding:3px 16px;font-size:13px;color:#fff;letter-spacing:.08em}
+  .hero .en{margin-top:6px;font-size:10px;letter-spacing:.18em;color:rgba(255,255,255,.85)}
+  header.top .actions button{border-radius:99px;padding:7px 16px}
+  /* 平面、無陰影、直角 */
+  .card{background:transparent;border:0;border-radius:0;padding:28px 24px 8px;margin:0}
+  .sec-wrap{padding:28px 24px 0}
+  button{border-radius:99px;padding:7px 16px}
+  button.ghost{border-radius:4px}
+  input,select,textarea{border-radius:2px;border-color:#cfd8e2}
+  label.f{font-size:12px;letter-spacing:.04em}
+  /* 頁眉式標題：左標題＋粗線，下方細線＋英文 */
+  .sec-head{margin:0 0 18px}
+  .sec-head .r1{display:flex;align-items:center;gap:14px}
+  .sec-head .r1 b{font-size:16px;font-weight:700;white-space:nowrap;letter-spacing:.06em}
+  .sec-head .r1 .no{color:var(--blue);margin-right:10px;font-family:"Avenir Next","Noto Sans TC",sans-serif}
+  .sec-head .r1 i{flex:1;height:3px;background:#3c4148}
+  .sec-head .r2{margin-left:22%;border-top:1px solid #3c4148;margin-top:5px;padding-top:3px;text-align:right;
+    font-size:12px;color:#4a4f56;letter-spacing:.08em;font-family:"Avenir Next","Noto Sans TC",sans-serif}
+  h3.st{font-size:13px;font-weight:500;color:#4a4f56;letter-spacing:.06em;margin:4px 0 0}
+  .cap{font-size:11px;color:var(--muted);margin:2px 0 0;letter-spacing:.03em}
+  .stats-grid{gap:36px}
+  /* 總覽：品牌色色塊 */
+  .summary{gap:0}
+  .stat{border-radius:0;padding:18px 18px 16px}
+  .stat:nth-child(1){background:var(--blue);color:#fff}
+  .stat:nth-child(2){background:var(--blue2);color:#fff}
+  .stat:nth-child(3){background:var(--green)}
+  .stat:nth-child(4){background:var(--yellow)}
+  .stat .k{color:inherit;opacity:.85;letter-spacing:.06em}
+  .stat .v{font-size:24px;font-family:"Avenir Next","Noto Sans TC",sans-serif}
+  .stat .v.over,.stat .v.under{background:none;color:inherit;padding:0}
+  table.cat th{letter-spacing:.06em;border-bottom:1px solid #3c4148}
+  table.cat tr.total td{border-top:2px solid #3c4148}
+  .bar{border-radius:0;height:10px;background:#eef3f8}
+  .bar i{border-radius:0}
+  .seg{border-radius:99px;border-color:var(--blue)}
+  .seg button{border-radius:0;color:var(--blue)}
+  /* 每日：大字 DAY 編號＋細線 */
+  .day{border:0;margin:0;padding:22px 24px 0}
+  .day-head{background:transparent;border:0;padding:0 0 8px;gap:14px;flex-wrap:nowrap}
+  .day-title{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+  .day-title .dno{font-family:"Avenir Next","Noto Sans TC",sans-serif;font-weight:700;font-size:22px;color:var(--blue);letter-spacing:.04em}
+  .day-title small{margin:0;font-size:13px;color:#4a4f56}
+  .day-line{flex:1;height:1px;background:#3c4148;align-self:center}
+  .day-sum{white-space:nowrap}
+  .day-sum .caret{display:inline-block;margin-left:10px;color:var(--blue);font-weight:700}
+  .day-body{padding:6px 0 0}
+  .day-note input{border:0;border-left:3px solid var(--blue);background:var(--accent-soft);border-radius:0}
+  @media (max-width:720px){ .day-head{flex-wrap:wrap} .day-line{display:none} .hero{padding:32px 18px 22px} .card,.day,.sec-wrap{padding-left:14px;padding-right:14px} }
+  /* 行程列 */
+  .item{border-radius:0;border-color:#e2e9f0;margin-bottom:-1px}
+  .item:hover{border-color:var(--blue2);box-shadow:none;position:relative;z-index:1}
+  .item.meal{background:#fff;box-shadow:inset 4px 0 0 var(--yellow)}
+  .item.stay{background:#fff;box-shadow:inset 4px 0 0 var(--green)}
+  .day-actions{margin-top:12px}
+  .tag{border-radius:99px}
+  .drag-tip{padding:0 24px;margin:6px 0 0}
+  /* 編輯視窗 */
+  dialog#editor{border-radius:0}
+  .ed-head{background:var(--blue);color:#fff;border:0}
+  .ed-head button{color:#fff}
+  .stay-box{border-radius:0;background:#f2f9f5;border-left:4px solid var(--green)}
+  footer{border-top:1px solid #3c4148;margin:40px 24px 0;letter-spacing:.04em}
 
   /* ---------- 列印 / PDF ---------- */
   #printView{display:none}
   @media print{
     @page{size:A4;margin:14mm 12mm}
-    body{background:#fff;font-size:11pt}
+    body{background:#fff;font-size:11pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     header.top,#app,footer,dialog{display:none !important}
     #printView{display:block}
-    .p-title{font-size:20pt;font-weight:700;margin:0}
+    .p-cover{background:#2778BE;color:#fff;padding:16mm 10mm 8mm;margin:0 0 6mm}
+    .p-title{font-size:22pt;font-weight:700;margin:0;letter-spacing:.06em}
+    .p-cover .p-sub{color:#fff;opacity:.9;margin:6px 0 0}
+    .p-cover .pill{display:inline-block;margin-top:8px;border:1px solid #fff;border-radius:99px;padding:1px 12px;font-size:9pt;letter-spacing:.08em}
     .p-sub{color:#555;margin:2px 0 12px}
     .p-stats{display:flex;gap:18px;margin:8px 0 14px;font-size:10.5pt}
     .p-stats b{font-size:12pt}
     .p-day{break-inside:avoid-page;margin-bottom:12px}
-    .p-day h3{font-size:13pt;margin:14px 0 4px;padding-bottom:3px;border-bottom:2px solid #2f6fde}
+    .p-day h3{font-size:12pt;margin:14px 0 6px;padding-bottom:3px;border-bottom:2.5px solid #3c4148;letter-spacing:.05em}
+    .p-day h3 .dno{color:#2778BE;font-size:14pt;margin-right:8px}
+    .p-stats div{padding:4px 10px;border-left:3px solid #2778BE}
     .p-day .p-note{color:#444;margin:2px 0 6px;font-size:10pt}
     table.p{width:100%;border-collapse:collapse;font-size:10pt}
     table.p.it{table-layout:fixed}
     table.p.it th:nth-child(1){width:50px} table.p.it th:nth-child(2){width:48px}
     table.p.it th:nth-child(4),table.p.it th:nth-child(5){width:96px}
     table.p th,table.p td{border-bottom:1px solid #ddd;padding:4px 6px;vertical-align:top;text-align:left}
-    table.p th{background:#f2f4f7;font-size:9pt;color:#444}
+    table.p th{background:#e3eef8;font-size:9pt;color:#1f2933}
     table.p td.n,table.p th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
     table.p td.t{white-space:nowrap}
     table.p .d{color:#555;font-size:9pt;white-space:pre-wrap}
-    table.p tr.share td{color:#5b4a8a;background:#faf8ff}
+    table.p tr.share td{color:#3d5a4a;background:#edf7f1}
     table.p tr.tot td{font-weight:700;border-top:1px solid #999}
     tr{break-inside:avoid}
   }
@@ -167,8 +253,12 @@
 <body>
 
 <header class="top">
-  <div class="wrap">
-    <div class="brand">🧳 旅遊行程規劃工具</div>
+  <div class="wrap hero">
+    <div class="hero-t">
+      <h1>旅遊行程規劃工具</h1>
+      <span class="pill">行程・預算・實際花費</span>
+      <div class="en">TRIP PLANNER &amp; BUDGET GUIDE</div>
+    </div>
     <div class="actions">
       <button id="btnPrint" class="primary" title="在列印視窗選「另存為 PDF」">匯出 PDF</button>
       <button id="btnExport">下載備份</button>
@@ -181,7 +271,7 @@
 
 <main id="app" class="wrap">
   <section class="card">
-    <h2>1. 旅程設定</h2>
+    <div class="sec-head"><div class="r1"><b><span class="no">01</span>旅程設定</b><i></i></div><div class="r2">Trip Settings</div></div>
     <div class="grid g-setup">
       <label class="f">旅程名稱<input id="title" placeholder="例如：北海道滑雪之旅"></label>
       <label class="f">出發日期<input id="start" type="date"></label>
@@ -197,32 +287,32 @@
   </section>
 
   <section class="card">
-    <h2>2. 費用總覽</h2>
+    <div class="sec-head"><div class="r1"><b><span class="no">02</span>費用總覽</b><i></i></div><div class="r2">Overview</div></div>
     <div class="summary" id="summary"></div>
   </section>
 
   <section class="card" id="statsCard">
-    <div class="stats-head">
-      <h2 style="margin:0">3. 費用統計</h2>
-    </div>
+    <div class="sec-head"><div class="r1"><b><span class="no">03</span>費用統計</b><i></i></div><div class="r2">Statistics</div></div>
     <div class="stats-grid">
-      <div><h3 class="st">每日花費 <small>（有設定分攤的費用平均算進各天；淺色條＝預算、深色條＝實際）</small></h3><table class="cat" id="dayTable"></table></div>
-      <div><h3 class="st">分類花費 <small>（% 為預算占比）</small></h3><table class="cat" id="catTable"></table></div>
+      <div><h3 class="st">｜ 每日花費 ｜</h3><p class="cap">有設定分攤的費用平均算進各天；淺色條＝預算、深色條＝實際</p><table class="cat" id="dayTable"></table></div>
+      <div><h3 class="st">｜ 分類花費 ｜</h3><p class="cap">% 為預算占比</p><table class="cat" id="catTable"></table></div>
     </div>
     <div class="stats-head" style="margin:18px 0 0">
-      <h3 class="st" style="margin:0">每日 × 分類明細 <small id="matrixUnit"></small></h3>
+      <h3 class="st" style="margin:0">｜ 每日 × 分類明細 ｜ <small id="matrixUnit"></small></h3>
       <div class="seg" id="statMode"><button data-mode="actual">實際花費</button><button data-mode="budget">預算</button></div>
     </div>
     <div class="matrix-wrap"><table class="cat matrix" id="matrixTable"></table></div>
   </section>
 
   <section class="card">
-    <h2>4. 行前／不分日的費用 <small style="font-weight:400;color:var(--muted)">（機票、住宿、保險、網卡…）</small></h2>
+    <div class="sec-head"><div class="r1"><b><span class="no">04</span>行前／不分日的費用</b><i></i></div><div class="r2">Pre-trip Costs</div></div>
+    <p class="cap" style="margin:-6px 0 12px">機票、住宿、保險、網卡等整趟的費用</p>
     <div id="general" data-drop="__general"></div>
     <div class="day-actions"><button data-act="add" data-day="__general">＋ 新增費用</button></div>
   </section>
 
-  <p class="drag-tip" id="dragTip">💡 行程可以直接拖拉到別天或「行前」區；手機上請點開行程，用「日期」選單移動。三餐只能在同一天內調整順序。</p>
+  <div class="sec-wrap"><div class="sec-head"><div class="r1"><b><span class="no">05</span>每日行程</b><i></i></div><div class="r2">Itinerary</div></div></div>
+  <p class="drag-tip" id="dragTip">行程可以直接拖拉到別天或「行前」區；手機上請點開行程，用「日期」選單移動。三餐只能在同一天內調整順序。</p>
   <section id="days"></section>
 </main>
 
@@ -277,8 +367,9 @@
     {key:"dinner",    label:"晚餐", order:"18:29"}
   ];
   const CATS = ["交通","餐飲","體驗","住宿","購物","伴手禮","醫美","保險","其他"];
-  const CAT_COLORS = {"交通":"#f59e0b","餐飲":"#ef6c8a","體驗":"#14b8a6","住宿":"#8b5cf6","購物":"#3b82f6",
-    "伴手禮":"#eab308","醫美":"#ec4899","保險":"#0ea5e9","其他":"#94a3b8"};
+  // 只用品牌色與其淺色階
+  const CAT_COLORS = {"交通":"#409AD6","餐飲":"#F7B88E","體驗":"#A4D5BB","住宿":"#2778BE","購物":"#F4ADAD",
+    "伴手禮":"#FCD475","醫美":"#F8C8C8","保險":"#7DAED8","其他":"#B8BEC6"};
   const WEEK = ["日","一","二","三","四","五","六"];
 
   /* ---------- 狀態 ---------- */
@@ -395,8 +486,8 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const tagHTML = it => {
-    if(it.kind==="meal"){ const m = MEALS.find(x=>x.key===it.meal); return `<span class="tag" style="background:#fde7b0;color:#7a5200">${m?m.label:"餐"}</span>`; }
-    const c = catOf(it); return `<span class="tag" style="background:${CAT_COLORS[c]}22;color:${CAT_COLORS[c]}">${c}</span>`;
+    if(it.kind==="meal"){ const m = MEALS.find(x=>x.key===it.meal); return `<span class="tag" style="background:#FCD475">${m?m.label:"餐"}</span>`; }
+    const c = catOf(it); return `<span class="tag" style="background:${CAT_COLORS[c]}66;box-shadow:inset 3px 0 0 ${CAT_COLORS[c]}">${c}</span>`;
   };
   const amtHTML = (v, it) => num(v) ? `<b>${money(num(v))} <small style="font-weight:400;color:var(--muted)">${esc(curOf(it))}</small></b>` : `<b class="none">—</b>`;
 
@@ -456,8 +547,9 @@
       const stays = agg.es.filter(e=>e.key===key && e.night && e.origin!==key);
       return `<section class="card day ${col?"collapsed":""}" data-drop="${key}">
         <div class="day-head" data-act="toggle" data-day="${key}">
-          <div class="day-title">Day ${i+1}<small>${labelDate(key)}　${key}</small></div>
-          <div class="day-sum">${sumText(agg.by[key])}　${col?"▸":"▾"}</div>
+          <div class="day-title"><span class="dno">DAY ${String(i+1).padStart(2,"0")}</span><small>${labelDate(key)}</small></div>
+          <i class="day-line"></i>
+          <div class="day-sum">${sumText(agg.by[key])}<span class="caret">${col?"＋":"－"}</span></div>
         </div>
         <div class="day-body">
           <div class="day-note"><input data-daynote="${key}" value="${esc(day.note)}" placeholder="這天的主題／住宿（例如：移動日、住札幌）"></div>
@@ -790,10 +882,11 @@
 
     const list = dayList(), rows = dayRows(agg), cats = catTotals(agg);
     let B=0, A=0; rows.forEach(r=>{ B+=r.g.b; A+=r.g.a; });
-    let html = `<h1 class="p-title">${esc(state.title)||"旅遊行程"}</h1>
+    let html = `<div class="p-cover"><h1 class="p-title">${esc(state.title)||"旅遊行程"}</h1>
       <div class="p-sub">${list.length?`${esc(state.start)} ～ ${esc(list[list.length-1])}　共 ${list.length} 天`:""}
       ${num(state.people)?`　${Math.floor(num(state.people))} 人`:""}
       ${fx && num(state.fxRate)?`　匯率 1 ${c} = ${esc(state.fxRate)} ${esc(fx)}`:""}</div>
+      <span class="pill">行程・預算・實際花費</span></div>
       <div class="p-stats"><div>總預算 <b>${money(B)}</b> ${c}</div><div>實際花費 <b>${money(A)}</b> ${c}</div><div>差額 <b>${money(A-B)}</b> ${c}</div></div>`;
     html += `<div class="p-day"><h3>每日花費統計 <small style="font-weight:400;font-size:9pt;color:#666">（分攤費用已平均算進各天）</small></h3><table class="p"><tr><th>日期</th><th class="n">預算</th><th class="n">實際</th><th class="n">差額</th></tr>` +
       rows.map(r=>`<tr><td>${r.label}　${r.sub}</td><td class="n">${money(r.g.b)}</td><td class="n">${money(r.g.a)}</td><td class="n">${r.g.a?money(r.g.a-r.g.b):"—"}</td></tr>`).join("") +
@@ -809,7 +902,7 @@
     list.forEach((k,i)=>{
       const d = state.days[k]; if(!d) return;
       const shares = agg.es.filter(e=>e.key===k && e.night && e.origin!==k);
-      html += `<div class="p-day"><h3>Day ${i+1}　${labelDate(k)}</h3>
+      html += `<div class="p-day"><h3><span class="dno">DAY ${String(i+1).padStart(2,"0")}</span>${labelDate(k)}</h3>
         ${d.note?`<div class="p-note">${esc(d.note)}</div>`:""}
         <table class="p it">${head}${d.items.map(it=>row(it)).join("")}
         ${shares.map(e=>row(e.it, e.frac, `分攤 第 ${e.night}/${e.nights} ${unit(e.it)}`)).join("")}${tot(agg.by[k])}</table></div>`;
