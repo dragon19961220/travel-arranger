@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>旅遊行程規劃工具</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1f2933; --muted:#6b7785; --line:#e3e7ec;
+    --accent:#2f6fde; --accent-soft:#e8f0fd; --good:#1f8a5b; --bad:#c2410c;
+    --meal:#fff7e6; --stay:#f3effe; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    font-size:15px;line-height:1.5}
+  header.top{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .wrap{max-width:1080px;margin:0 auto;padding:16px}
+  .top .wrap{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 16px}
+  .brand{font-weight:700;font-size:18px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:7px 12px;border-radius:8px;cursor:pointer}
+  button:hover{border-color:#c5ccd5}
+  button:disabled{opacity:.35;cursor:default}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:4px 8px}
+  button.ghost:hover:not(:disabled){color:var(--ink);background:#f0f2f5}
+  button.danger{color:var(--bad)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+  h2{font-size:16px;margin:0 0 12px}
+  label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+  input,select,textarea{font:inherit;color:var(--ink);border:1px solid var(--line);border-radius:7px;
+    padding:7px 9px;background:#fff;width:100%}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  textarea{resize:vertical;min-height:110px}
+  .grid{display:grid;gap:12px}
+  .g-setup{grid-template-columns:2fr 1fr 1fr}
+  .g-fx{grid-template-columns:1fr 1fr 1fr 1fr}
+  @media (max-width:720px){.g-setup,.g-fx{grid-template-columns:1fr 1fr}}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media (max-width:720px){.summary{grid-template-columns:1fr 1fr}}
+  .stat{background:var(--bg);border-radius:8px;padding:10px 12px}
+  .stat .k{font-size:12px;color:var(--muted)}
+  .stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .over{color:var(--bad)} .under{color:var(--good)}
+
+  .stats-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:6px 12px}
+  .seg button.on{background:var(--accent);color:#fff}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media (max-width:720px){.stats-grid{grid-template-columns:1fr}}
+  h3.st{font-size:14px;margin:8px 0 0}
+  h3.st small{font-weight:400;color:var(--muted)}
+  table.cat{width:100%;border-collapse:collapse;margin-top:8px;font-variant-numeric:tabular-nums}
+  table.cat th,table.cat td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);font-size:14px}
+  table.cat th:first-child,table.cat td:first-child{text-align:left}
+  table.cat th{color:var(--muted);font-weight:600;font-size:12px}
+  table.cat td.lbl{white-space:nowrap}
+  table.cat td.pct{color:var(--muted);font-size:12px;width:44px}
+  table.cat tr.total td{font-weight:700;border-top:2px solid var(--line)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .bar{position:relative;height:8px;background:#eef1f5;border-radius:4px;min-width:60px}
+  .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--accent)}
+  .matrix-wrap{overflow-x:auto;margin-top:4px}
+  table.matrix{min-width:680px}
+  table.matrix td.zero{color:#c3c9d1}
+
+  .day{padding:0;overflow:hidden}
+  .day-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:12px 16px;background:var(--accent-soft);cursor:pointer;user-select:none}
+  .day-title{font-weight:700}
+  .day-title small{font-weight:400;color:var(--muted);margin-left:6px}
+  .day-sum{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .day-body{padding:12px 16px}
+  .day.collapsed .day-body{display:none}
+  .day-note{margin-bottom:10px}
+
+  /* 精簡行程列：點一下開啟編輯視窗 */
+  .item{display:grid;grid-template-columns:64px 1fr 110px 110px 56px;gap:10px;align-items:center;
+    padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:#fff;cursor:pointer}
+  .item:hover{border-color:#b9c3cf;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .item.meal{background:var(--meal)}
+  .item.stay{background:var(--stay);cursor:default}
+  .item .t{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+  .item .main{min-width:0;display:flex;align-items:center;gap:8px}
+  .item .ttl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .ttl.ph{color:#a6b0bb;font-weight:400}
+  .item .has-desc{color:var(--muted);font-size:12px;flex:0 0 auto}
+  .tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;white-space:nowrap;flex:0 0 auto;
+    background:#eef1f5;color:#334155}
+  .item .amt{text-align:right;font-variant-numeric:tabular-nums;line-height:1.25}
+  .item .amt span{display:block;font-size:11px;color:var(--muted)}
+  .item .amt b{font-weight:600;font-size:14px}
+  .item .amt b.none{color:#c3c9d1;font-weight:400}
+  .item .tools{display:flex;justify-content:flex-end}
+  .item .tools button{padding:2px 6px}
+  @media (max-width:720px){
+    .item{grid-template-columns:44px 1fr 1fr 56px;row-gap:2px}
+    .item .t{grid-row:1;grid-column:1}
+    .item .main{grid-row:1;grid-column:2 / 4}
+    .item .tools{grid-row:1;grid-column:4}
+    .item .amt.b{grid-row:2;grid-column:2;text-align:left}
+    .item .amt.a{grid-row:2;grid-column:3;text-align:left}
+    .item .main{flex-wrap:wrap;row-gap:2px}
+    .item .ttl{white-space:normal}
+    header.top{position:static}
+  }
+  .item.dragging{opacity:.4}
+  .item.drop-before{box-shadow:0 -3px 0 0 var(--accent)}
+  .item.drop-after{box-shadow:0 3px 0 0 var(--accent)}
+  [data-drop].drop-on{outline:2px dashed var(--accent);outline-offset:2px}
+  #general{min-height:8px}
+  .drag-tip{font-size:12px;color:var(--muted);margin:-4px 0 12px}
+  .day-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .empty{color:var(--muted);text-align:center;padding:32px 16px}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:24px 16px}
+
+  /* 編輯視窗 */
+  dialog#editor{border:0;border-radius:14px;padding:0;width:min(560px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  dialog#editor::backdrop{background:rgba(15,23,42,.45)}
+  .ed-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .ed-head b{font-size:16px}
+  .ed-body{padding:16px 18px;display:grid;gap:12px;max-height:70vh;overflow:auto}
+  .ed-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ed-row3{display:grid;grid-template-columns:1fr 1fr 110px;gap:12px}
+  @media (max-width:520px){.ed-row3{grid-template-columns:1fr 1fr}}
+  .ed-foot{display:flex;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+  .stay-box{background:var(--stay);border-radius:8px;padding:10px 12px}
+  .stay-box .hint{margin:6px 0 0}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chips button{padding:4px 9px;font-size:13px;border-radius:99px;background:#fff}
+  .chips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* ---------- 列印 / PDF ---------- */
+  #printView{display:none}
+  @media print{
+    @page{size:A4;margin:14mm 12mm}
+    body{background:#fff;font-size:11pt}
+    header.top,#app,footer,dialog{display:none !important}
+    #printView{display:block}
+    .p-title{font-size:20pt;font-weight:700;margin:0}
+    .p-sub{color:#555;margin:2px 0 12px}
+    .p-stats{display:flex;gap:18px;margin:8px 0 14px;font-size:10.5pt}
+    .p-stats b{font-size:12pt}
+    .p-day{break-inside:avoid-page;margin-bottom:12px}
+    .p-day h3{font-size:13pt;margin:14px 0 4px;padding-bottom:3px;border-bottom:2px solid #2f6fde}
+    .p-day .p-note{color:#444;margin:2px 0 6px;font-size:10pt}
+    table.p{width:100%;border-collapse:collapse;font-size:10pt}
+    table.p.it{table-layout:fixed}
+    table.p.it th:nth-child(1){width:50px} table.p.it th:nth-child(2){width:48px}
+    table.p.it th:nth-child(4),table.p.it th:nth-child(5){width:96px}
+    table.p th,table.p td{border-bottom:1px solid #ddd;padding:4px 6px;vertical-align:top;text-align:left}
+    table.p th{background:#f2f4f7;font-size:9pt;color:#444}
+    table.p td.n,table.p th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+    table.p td.t{white-space:nowrap}
+    table.p .d{color:#555;font-size:9pt;white-space:pre-wrap}
+    table.p tr.share td{color:#5b4a8a;background:#faf8ff}
+    table.p tr.tot td{font-weight:700;border-top:1px solid #999}
+    tr{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">🧳 旅遊行程規劃工具</div>
+    <div class="actions">
+      <button id="btnPrint" class="primary" title="在列印視窗選「另存為 PDF」">匯出 PDF</button>
+      <button id="btnExport">下載備份</button>
+      <button id="btnImport">匯入備份</button>
+      <button id="btnReset" class="danger">清空</button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </div>
+  </div>
+</header>
+
+<main id="app" class="wrap">
+  <section class="card">
+    <h2>1. 旅程設定</h2>
+    <div class="grid g-setup">
+      <label class="f">旅程名稱<input id="title" placeholder="例如：北海道滑雪之旅"></label>
+      <label class="f">出發日期<input id="start" type="date"></label>
+      <label class="f">回程日期<input id="end" type="date"></label>
+    </div>
+    <div class="grid g-fx" style="margin-top:12px">
+      <label class="f">主要幣別（統計用）<input id="cur" placeholder="TWD" maxlength="6"></label>
+      <label class="f">外幣（選填）<input id="fxCode" placeholder="JPY" maxlength="6"></label>
+      <label class="f"><span>匯率：1 <b id="lblCur1">TWD</b> = ? <b id="lblFx1">JPY</b></span><input id="fxRate" type="number" step="any" min="0" placeholder="4.5"></label>
+      <label class="f">人數<input id="people" type="number" min="1" step="1" placeholder="2"></label>
+    </div>
+    <p class="hint">填好出發和回程日期，下面就會自動展開每一天。點任一個行程可以編輯細節。資料會自動存在這個瀏覽器裡；換電腦或要分享時，請用「下載備份」。</p>
+  </section>
+
+  <section class="card">
+    <h2>2. 費用總覽</h2>
+    <div class="summary" id="summary"></div>
+  </section>
+
+  <section class="card" id="statsCard">
+    <div class="stats-head">
+      <h2 style="margin:0">3. 費用統計</h2>
+    </div>
+    <div class="stats-grid">
+      <div><h3 class="st">每日花費 <small>（有設定分攤的費用平均算進各天；淺色條＝預算、深色條＝實際）</small></h3><table class="cat" id="dayTable"></table></div>
+      <div><h3 class="st">分類花費 <small>（% 為預算占比）</small></h3><table class="cat" id="catTable"></table></div>
+    </div>
+    <div class="stats-head" style="margin:18px 0 0">
+      <h3 class="st" style="margin:0">每日 × 分類明細 <small id="matrixUnit"></small></h3>
+      <div class="seg" id="statMode"><button data-mode="actual">實際花費</button><button data-mode="budget">預算</button></div>
+    </div>
+    <div class="matrix-wrap"><table class="cat matrix" id="matrixTable"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>4. 行前／不分日的費用 <small style="font-weight:400;color:var(--muted)">（機票、住宿、保險、網卡…）</small></h2>
+    <div id="general" data-drop="__general"></div>
+    <div class="day-actions"><button data-act="add" data-day="__general">＋ 新增費用</button></div>
+  </section>
+
+  <p class="drag-tip" id="dragTip">💡 行程可以直接拖拉到別天或「行前」區；手機上請點開行程，用「日期」選單移動。三餐只能在同一天內調整順序。</p>
+  <section id="days"></section>
+</main>
+
+<dialog id="editor">
+  <div id="edForm">
+    <div class="ed-head"><b id="edTitle">編輯行程</b><button type="button" class="ghost" id="edClose" aria-label="關閉">✕</button></div>
+    <div class="ed-body">
+      <div class="ed-row">
+        <label class="f">時間（選填）<input type="time" data-e="time"></label>
+        <label class="f" id="edCatWrap">類別<select data-e="cat"></select></label>
+      </div>
+      <label class="f" id="edDayWrap">日期（可移到別天）<select id="edDay"></select></label>
+      <label class="f">名稱<input data-e="title" placeholder="例如：北海道神宮"></label>
+      <label class="f">簡單介紹<textarea data-e="desc" placeholder="地址、營業時間、訂位電話、注意事項…"></textarea></label>
+      <div class="ed-row3">
+        <label class="f">預算<input type="number" step="any" min="0" data-e="budget" placeholder="0"></label>
+        <label class="f">實際花費<input type="number" step="any" min="0" data-e="actual" placeholder="0"></label>
+        <label class="f">幣別<select data-e="cur"></select></label>
+      </div>
+      <div class="stay-box" id="stayBox">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <b style="font-size:14px">平均分攤到哪幾天</b>
+          <span><button type="button" class="ghost" id="spAll">全選</button><button type="button" class="ghost" id="spNone">清除</button></span>
+        </div>
+        <div class="ed-row" id="stayDates" style="margin-top:8px">
+          <label class="f">入住日<input type="date" data-e="checkin"></label>
+          <label class="f">退房日<input type="date" data-e="checkout"></label>
+        </div>
+        <div class="chips" id="spChips"></div>
+        <p class="hint" id="stayHint"></p>
+      </div>
+    </div>
+    <div class="ed-foot">
+      <button type="button" class="danger" id="edDelete">刪除</button>
+      <button type="button" class="primary" id="edDone">完成</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="printView"></div>
+
+<footer>單一 HTML 檔，無需伺服器，可直接放上 GitHub Pages 使用。</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  const STORE_KEY = "trip-planner-v1";
+  const MEALS = [
+    {key:"breakfast", label:"早餐", order:"07:59"},
+    {key:"lunch",     label:"午餐", order:"11:59"},
+    {key:"dinner",    label:"晚餐", order:"18:29"}
+  ];
+  const CATS = ["交通","餐飲","體驗","住宿","購物","伴手禮","醫美","保險","其他"];
+  const CAT_COLORS = {"交通":"#f59e0b","餐飲":"#ef6c8a","體驗":"#14b8a6","住宿":"#8b5cf6","購物":"#3b82f6",
+    "伴手禮":"#eab308","醫美":"#ec4899","保險":"#0ea5e9","其他":"#94a3b8"};
+  const WEEK = ["日","一","二","三","四","五","六"];
+
+  /* ---------- 狀態 ---------- */
+  function blank(){
+    return {title:"", start:"", end:"", cur:"TWD", fxCode:"", fxRate:"", people:"",
+            general:[], days:{}, collapsed:{}, statMode:"actual"};
+  }
+  function migrate(st){
+    const map = {"景點":"體驗","活動":"體驗"};
+    const fix = it=>{
+      if(map[it.cat]) it.cat = map[it.cat];
+      if(it.kind!=="meal" && !CATS.includes(it.cat)) it.cat = "其他";
+      if(it.checkin==null) it.checkin = ""; if(it.checkout==null) it.checkout = "";
+      if(!Array.isArray(it.spread)){
+        it.spread = (it.kind!=="meal" && it.cat==="住宿") ? range(it.checkin, it.checkout, false) : [];
+      }
+    };
+    (st.general||[]).forEach(fix);
+    Object.values(st.days||{}).forEach(d=>(d.items||[]).forEach(fix));
+    if(st.statMode!=="budget") st.statMode = "actual";
+    return st;
+  }
+  let state = load() || blank();
+  function load(){
+    try{ const s = localStorage.getItem(STORE_KEY); return s ? migrate(Object.assign(blank(), JSON.parse(s))) : null; }
+    catch(e){ return null; }
+  }
+  let saveTimer = null;
+  function save(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }, 250);
+  }
+  const uid = () => Math.random().toString(36).slice(2,10);
+  function newItem(extra){
+    return Object.assign({id:uid(), kind:"custom", meal:"", time:"", title:"", desc:"",
+      cat:"體驗", budget:"", actual:"", cur:"main", checkin:"", checkout:"", spread:[]}, extra||{});
+  }
+
+  /* ---------- 日期 ---------- */
+  function parseDate(s){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s||"")) return null;
+    const [y,m,d] = s.split("-").map(Number);
+    const dt = new Date(Date.UTC(y,m-1,d));
+    return isNaN(dt) ? null : dt;
+  }
+  const fmt = dt => dt.toISOString().slice(0,10);
+  function range(a, b, inclusive){
+    const out = []; const s = parseDate(a), e = parseDate(b);
+    if(!s || !e) return out;
+    for(let d=new Date(s), i=0; (inclusive ? d<=e : d<e) && i<366; d.setUTCDate(d.getUTCDate()+1), i++) out.push(fmt(d));
+    return out;
+  }
+  function dayList(){
+    if(!parseDate(state.start)) return [];
+    const end = parseDate(state.end) && state.end >= state.start ? state.end : state.start;
+    return range(state.start, end, true).slice(0,120);
+  }
+  function labelDate(s){
+    const d = parseDate(s);
+    return `${d.getUTCMonth()+1}/${d.getUTCDate()}（${WEEK[d.getUTCDay()]}）`;
+  }
+  function ensureDay(key){
+    if(!state.days[key]) state.days[key] = {note:"", items:[]};
+    const day = state.days[key];
+    MEALS.forEach(m=>{
+      if(!day.items.some(it=>it.kind==="meal" && it.meal===m.key)) day.items.push(newItem({kind:"meal", meal:m.key, cat:"餐飲"}));
+    });
+    return day;
+  }
+
+  /* ---------- 金額 ---------- */
+  const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+  function toMain(amount, cur){
+    if(cur === "fx"){ const r = num(state.fxRate); return r > 0 ? amount / r : 0; }
+    return amount;
+  }
+  const money = n => Math.round(n).toLocaleString("zh-Hant");
+  const curName = () => (state.cur || "TWD").toUpperCase();
+  const fxName  = () => (state.fxCode || "").toUpperCase();
+  const curOf = it => it.cur==="fx" && fxName() ? fxName() : curName();
+  const catOf = it => it.kind==="meal" ? "餐飲" : (CATS.includes(it.cat) ? it.cat : "其他");
+  const spreadOf = it => it.kind!=="meal" && Array.isArray(it.spread) ? [...new Set(it.spread.filter(d=>parseDate(d)))].sort() : [];
+  const isStay = it => spreadOf(it).length > 0;
+  const unit = it => it.cat==="住宿" ? "晚" : "天";
+
+  /* 把每個項目拆到它算錢的日子：住宿依晚數平均分攤，其餘算在原本的日子 */
+  function entries(){
+    const days = dayList(), inTrip = new Set(days), out = [];
+    const push = (it, origin) => {
+      if(isStay(it)){
+        const nights = spreadOf(it), n = nights.length;
+        let rest = 0;
+        nights.forEach((d,i)=>{ if(inTrip.has(d)) out.push({it, key:d, frac:1/n, origin, night:i+1, nights:n}); else rest += 1/n; });
+        if(rest > 1e-9) out.push({it, key:origin, frac:rest, origin});
+      } else out.push({it, key:origin, frac:1, origin});
+    };
+    state.general.forEach(it=>push(it, "__general"));
+    days.forEach(k=>{ if(state.days[k]) state.days[k].items.forEach(it=>push(it, k)); });
+    return out;
+  }
+  function aggregate(){
+    const es = entries(), by = {};
+    const get = k => by[k] || (by[k] = {b:0, a:0, cats:{}});
+    es.forEach(e=>{
+      const g = get(e.key), c = catOf(e.it);
+      const b = toMain(num(e.it.budget), e.it.cur) * e.frac, a = toMain(num(e.it.actual), e.it.cur) * e.frac;
+      g.b += b; g.a += a;
+      g.cats[c] = g.cats[c] || {b:0, a:0}; g.cats[c].b += b; g.cats[c].a += a;
+    });
+    return {by, es};
+  }
+
+  /* ---------- 畫面 ---------- */
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const tagHTML = it => {
+    if(it.kind==="meal"){ const m = MEALS.find(x=>x.key===it.meal); return `<span class="tag" style="background:#fde7b0;color:#7a5200">${m?m.label:"餐"}</span>`; }
+    const c = catOf(it); return `<span class="tag" style="background:${CAT_COLORS[c]}22;color:${CAT_COLORS[c]}">${c}</span>`;
+  };
+  const amtHTML = (v, it) => num(v) ? `<b>${money(num(v))} <small style="font-weight:400;color:var(--muted)">${esc(curOf(it))}</small></b>` : `<b class="none">—</b>`;
+
+  function itemHTML(it, dayKey, idx, total){
+    const isMeal = it.kind==="meal";
+    const m = MEALS.find(x=>x.key===it.meal);
+    const ph = isMeal ? `${m.label}：點一下填店名` : "點一下填寫行程";
+    const nights = spreadOf(it).length;
+    return `<div class="item ${isMeal?"meal":""}" draggable="true" data-day="${dayKey}" data-id="${it.id}" data-act="edit">
+      <div class="t">${esc(it.time)||"—"}</div>
+      <div class="main">${tagHTML(it)}<span class="ttl ${it.title?"":"ph"}">${esc(it.title)||ph}</span>
+        ${nights?`<span class="has-desc">${it.cat==="住宿"?"🛏":"↔"} 分攤 ${nights} ${unit(it)}</span>`:""}
+        ${it.desc?`<span class="has-desc" title="${esc(it.desc)}">📝</span>`:""}</div>
+      <div class="amt b"><span>預算</span>${amtHTML(it.budget,it)}</div>
+      <div class="amt a"><span>實際</span>${amtHTML(it.actual,it)}</div>
+      <div class="tools">
+        <button class="ghost" title="上移" data-act="up" ${idx===0?"disabled":""}>↑</button>
+        <button class="ghost" title="下移" data-act="down" ${idx===total-1?"disabled":""}>↓</button>
+      </div>
+    </div>`;
+  }
+  function stayRowHTML(e){
+    const it = e.it, c = curOf(it);
+    const b = num(it.budget)*e.frac, a = num(it.actual)*e.frac;
+    return `<div class="item stay" title="分攤的費用，請到原本的項目修改">
+      <div class="t">${it.cat==="住宿"?"🛏":"↔"}</div>
+      <div class="main">${tagHTML(it)}<span class="ttl">${esc(it.title)||"分攤費用"}</span><span class="has-desc">分攤 第 ${e.night}/${e.nights} ${unit(it)}</span></div>
+      <div class="amt b"><span>預算</span>${b?`<b>${money(b)} <small style="font-weight:400;color:var(--muted)">${esc(c)}</small></b>`:`<b class="none">—</b>`}</div>
+      <div class="amt a"><span>實際</span>${a?`<b>${money(a)} <small style="font-weight:400;color:var(--muted)">${esc(c)}</small></b>`:`<b class="none">—</b>`}</div>
+      <div></div></div>`;
+  }
+
+  function sumText(g){
+    g = g || {b:0,a:0};
+    const cls = g.a === 0 ? "" : (g.a > g.b ? "over" : "under");
+    return `預算 ${money(g.b)}／實際 <span class="${cls}">${money(g.a)}</span> ${esc(curName())}`;
+  }
+
+  function renderGeneral(){
+    const items = state.general;
+    $("general").innerHTML = items.length
+      ? items.map((it,i)=>itemHTML(it,"__general",i,items.length)).join("")
+      : `<div class="hint" style="margin:0 0 8px">還沒有項目。可以把機票、住宿、保險等整趟的費用加在這裡。點開項目可以選要平均分攤到哪幾天（例如住宿、雪具租借）。</div>`;
+  }
+
+  function renderDays(agg){
+    const list = dayList();
+    if(!list.length){
+      $("days").innerHTML = `<div class="card empty">先在上面填「出發日期」，每一天的行程就會自動展開。</div>`;
+      return;
+    }
+    list.forEach(ensureDay);
+    agg = agg || aggregate();
+    $("days").innerHTML = list.map((key,i)=>{
+      const day = state.days[key];
+      const col = state.collapsed[key];
+      const stays = agg.es.filter(e=>e.key===key && e.night && e.origin!==key);
+      return `<section class="card day ${col?"collapsed":""}" data-drop="${key}">
+        <div class="day-head" data-act="toggle" data-day="${key}">
+          <div class="day-title">Day ${i+1}<small>${labelDate(key)}　${key}</small></div>
+          <div class="day-sum">${sumText(agg.by[key])}　${col?"▸":"▾"}</div>
+        </div>
+        <div class="day-body">
+          <div class="day-note"><input data-daynote="${key}" value="${esc(day.note)}" placeholder="這天的主題／住宿（例如：移動日、住札幌）"></div>
+          ${day.items.map((it,j)=>itemHTML(it,key,j,day.items.length)).join("")}
+          ${stays.map(stayRowHTML).join("")}
+          <div class="day-actions">
+            <button data-act="add" data-day="${key}">＋ 新增行程</button>
+            <button class="ghost" data-act="sort" data-day="${key}">依時間排序</button>
+          </div>
+        </div>
+      </section>`;
+    }).join("");
+  }
+
+  function renderSummary(agg){
+    let b=0, a=0; Object.values(agg.by).forEach(g=>{ b+=g.b; a+=g.a; });
+    const diff = a - b, c = esc(curName());
+    const ppl = Math.max(1, Math.floor(num(state.people)) || 1);
+    $("summary").innerHTML = `
+      <div class="stat"><div class="k">總預算（${c}）</div><div class="v">${money(b)}</div></div>
+      <div class="stat"><div class="k">實際花費（${c}）</div><div class="v">${money(a)}</div></div>
+      <div class="stat"><div class="k">${diff>0?"超出預算":"剩餘預算"}</div><div class="v ${diff>0?"over":"under"}">${money(Math.abs(diff))}</div></div>
+      <div class="stat"><div class="k">每人預算／實際（${ppl} 人）</div><div class="v" style="font-size:16px">${money(b/ppl)}／${money(a/ppl)}</div></div>`;
+  }
+
+  function dayRows(agg){
+    const rows = [];
+    if(agg.by.__general) rows.push({key:"__general", label:"行前／不分日", sub:"", g:agg.by.__general});
+    dayList().forEach((k,i)=>rows.push({key:k, label:"Day "+(i+1), sub:labelDate(k), g:agg.by[k] || {b:0,a:0,cats:{}}}));
+    return rows;
+  }
+  function catTotals(agg){
+    return CATS.map(c=>{ let b=0,a=0; Object.values(agg.by).forEach(g=>{ if(g.cats[c]){ b+=g.cats[c].b; a+=g.cats[c].a; } }); return {cat:c,b,a}; });
+  }
+  const pct = (v,t)=> t>0 ? Math.round(v/t*100)+"%" : "—";
+  const bar = (v,max,color)=> `<div class="bar"><i style="width:${max>0?Math.max(0,v/max*100):0}%;${color?"background:"+color:""}"></i></div>`;
+
+  const bar2 = (b,a,max,color)=> `<div class="bar" title="淺色＝預算，深色＝實際">
+      <i style="width:${max>0?b/max*100:0}%;background:${color||"var(--accent)"};opacity:.25"></i>
+      <i style="width:${max>0?a/max*100:0}%;background:${color||"var(--accent)"}"></i></div>`;
+
+  function renderStats(agg){
+    const rows = dayRows(agg), cats = catTotals(agg);
+    const B = rows.reduce((x,r)=>x+r.g.b,0), A = rows.reduce((x,r)=>x+r.g.a,0);
+    // 矩陣用的檢視：還沒有任何實際花費時自動看預算
+    const mode = state.statMode==="budget" || A===0 ? "budget" : "actual", f = mode==="budget" ? "b" : "a";
+    document.querySelectorAll("#statMode button").forEach(b=>b.classList.toggle("on", b.dataset.mode===mode));
+    const c = esc(curName());
+    if(!rows.length){ ["dayTable","catTable","matrixTable"].forEach(id=>$(id).innerHTML=""); $("matrixUnit").textContent=""; return; }
+    const head = first => `<tr><th>${first}</th><th></th><th>預算</th><th>實際</th></tr>`;
+    const amt = v => v ? money(v) : `<span style="color:#c3c9d1">0</span>`;
+
+    const maxDay = Math.max(0,...rows.map(r=>Math.max(r.g.b,r.g.a)));
+    $("dayTable").innerHTML = head("日期") +
+      rows.map(r=>`<tr><td class="lbl">${r.label} <small style="color:var(--muted)">${r.sub}</small></td>
+        <td style="width:34%">${bar2(r.g.b,r.g.a,maxDay)}</td><td>${amt(r.g.b)}</td><td class="${r.g.a>r.g.b&&r.g.a?"over":""}">${amt(r.g.a)}</td></tr>`).join("") +
+      `<tr class="total"><td>合計（${c}）</td><td></td><td>${money(B)}</td><td class="${A>B?"over":""}">${money(A)}</td></tr>`;
+
+    const used = cats.filter(x=>x.b||x.a);
+    const maxCat = Math.max(0,...used.map(x=>Math.max(x.b,x.a)));
+    $("catTable").innerHTML = used.length
+      ? head("分類") + used.map(x=>`<tr><td class="lbl"><span class="dot" style="background:${CAT_COLORS[x.cat]}"></span>${x.cat}
+          <small style="color:var(--muted)">${pct(x.b,B)}</small></td>
+          <td style="width:34%">${bar2(x.b,x.a,maxCat,CAT_COLORS[x.cat])}</td><td>${amt(x.b)}</td><td class="${x.a>x.b&&x.a?"over":""}">${amt(x.a)}</td></tr>`).join("") +
+        `<tr class="total"><td>合計（${c}）</td><td></td><td>${money(B)}</td><td class="${A>B?"over":""}">${money(A)}</td></tr>`
+      : `<tr><td style="color:var(--muted)">填入預算或實際花費後就會出現統計。</td></tr>`;
+
+    const word = mode==="budget" ? "預算" : "實際";
+    $("matrixUnit").textContent = `（${word}，${curName()}）`;
+    const total = mode==="budget" ? B : A;
+    const show = used.length ? used.map(x=>x.cat) : CATS;
+    const cv = (g,k)=> g.cats[k] ? g.cats[k][f] : 0;
+    const cell = v=> `<td class="${v?"":"zero"}">${v?money(v):"0"}</td>`;
+    $("matrixTable").innerHTML =
+      `<tr><th>日期</th>${show.map(k=>`<th><span class="dot" style="background:${CAT_COLORS[k]}"></span>${k}</th>`).join("")}<th>合計</th></tr>` +
+      rows.map(r=>`<tr><td class="lbl">${r.label} <small style="color:var(--muted)">${r.sub}</small></td>${show.map(k=>cell(cv(r.g,k))).join("")}<td><b>${money(r.g[f])}</b></td></tr>`).join("") +
+      `<tr class="total"><td>合計</td>${show.map(k=>cell(cats.find(x=>x.cat===k)[f])).join("")}<td>${money(total)}</td></tr>`;
+  }
+
+  function renderSetup(){
+    ["title","start","end","cur","fxCode","fxRate","people"].forEach(k=>{ if(document.activeElement!==$(k)) $(k).value = state[k] || ""; });
+    $("lblCur1").textContent = curName();
+    $("lblFx1").textContent = fxName() || "外幣";
+  }
+  function renderNumbers(){ const agg = aggregate(); renderSummary(agg); renderStats(agg); return agg; }
+  function renderAll(){ renderSetup(); renderGeneral(); const agg = renderNumbers(); renderDays(agg); }
+
+  /* ---------- 互動 ---------- */
+  function findItem(dayKey, id){
+    const arr = dayKey === "__general" ? state.general : (state.days[dayKey]||{}).items || [];
+    const idx = arr.findIndex(it=>it.id===id);
+    return {arr, idx, it: arr[idx]};
+  }
+
+  ["title","start","end","cur","fxCode","fxRate","people"].forEach(k=>{
+    $(k).addEventListener("input", e=>{
+      state[k] = e.target.value;
+      if(k==="start" && state.start && (!state.end || state.end < state.start)){ state.end = state.start; $("end").value = state.end; }
+      save();
+      if(k==="title"||k==="people"){ renderNumbers(); return; }
+      renderAll();
+    });
+  });
+  document.addEventListener("input", e=>{
+    const el = e.target;
+    if(el.dataset.daynote){ state.days[el.dataset.daynote].note = el.value; save(); }
+  });
+
+  document.addEventListener("click", e=>{
+    const mb = e.target.closest("#statMode button");
+    if(mb){ state.statMode = mb.dataset.mode; save(); renderStats(aggregate()); return; }
+    const btn = e.target.closest("[data-act]"); if(!btn) return;
+    const act = btn.dataset.act;
+    if(act==="toggle"){
+      const k = btn.dataset.day; state.collapsed[k] = !state.collapsed[k]; save(); renderDays(); return;
+    }
+    if(act==="add"){
+      const k = btn.dataset.day;
+      const arr = k==="__general" ? state.general : ensureDay(k).items;
+      const it = newItem(k==="__general" ? {cat:"住宿"} : {cat:"體驗"});
+      const dinnerIdx = arr.findIndex(x=>x.kind==="meal" && x.meal==="dinner");
+      if(k!=="__general" && dinnerIdx>=0) arr.splice(dinnerIdx,0,it); else arr.push(it);
+      save(); openEditor(k, it.id, true); return;
+    }
+    if(act==="sort"){
+      const day = state.days[btn.dataset.day];
+      const key = it => it.time || (MEALS.find(m=>m.key===it.meal)||{}).order || "99";
+      day.items.sort((a,b)=> key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0);
+      save(); renderDays(); return;
+    }
+    const box = btn.closest(".item"); if(!box || !box.dataset.id) return;
+    if(act==="edit"){ if(e.target.closest("button")) return; openEditor(box.dataset.day, box.dataset.id); return; }
+    const {arr, idx} = findItem(box.dataset.day, box.dataset.id);
+    if(idx<0) return;
+    if(act==="up" && idx>0) [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];
+    if(act==="down" && idx<arr.length-1) [arr[idx+1],arr[idx]]=[arr[idx],arr[idx+1]];
+    save(); box.dataset.day==="__general" ? renderGeneral() : renderDays();
+  });
+
+  /* ---------- 移動行程（拖拉／編輯視窗） ---------- */
+  function arrOf(key){ return key==="__general" ? state.general : ensureDay(key).items; }
+  function moveItem(fromDay, id, toDay, beforeId, after){
+    const src = findItem(fromDay, id); if(!src.it) return false;
+    if(src.it.kind==="meal" && toDay!==fromDay) return false;
+    src.arr.splice(src.idx,1);
+    const dst = arrOf(toDay);
+    let at;
+    if(beforeId){ at = dst.findIndex(x=>x.id===beforeId); if(at<0) at = dst.length; else if(after) at++; }
+    else {
+      const dinner = dst.findIndex(x=>x.kind==="meal" && x.meal==="dinner");
+      at = toDay!=="__general" && dinner>=0 ? dinner : dst.length;
+    }
+    dst.splice(at,0,src.it);
+    save(); return true;
+  }
+  function dayOptions(){
+    return `<option value="__general">行前／不分日</option>` +
+      dayList().map((k,i)=>`<option value="${k}">Day ${i+1}　${labelDate(k)}</option>`).join("");
+  }
+
+  let drag = null; // {day, id, meal}
+  function clearMarks(){ document.querySelectorAll(".drop-before,.drop-after,.drop-on").forEach(el=>el.classList.remove("drop-before","drop-after","drop-on")); }
+  function dropTarget(e){
+    const zone = e.target.closest("[data-drop]"); if(!zone || !drag) return null;
+    const toDay = zone.dataset.drop;
+    if(drag.meal && toDay!==drag.day) return {zone, toDay, bad:true};
+    const over = e.target.closest(".item[data-id]");
+    if(over && over.dataset.id!==drag.id && over.dataset.day===toDay){
+      const r = over.getBoundingClientRect();
+      return {zone, toDay, over, after: e.clientY > r.top + r.height/2};
+    }
+    return {zone, toDay};
+  }
+  document.addEventListener("dragstart", e=>{
+    const el = e.target.closest && e.target.closest(".item[draggable]"); if(!el) return;
+    const {it} = findItem(el.dataset.day, el.dataset.id); if(!it) return;
+    drag = {day:el.dataset.day, id:el.dataset.id, meal: it.kind==="meal"};
+    el.classList.add("dragging");
+    try{ e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", el.dataset.id); }catch(err){}
+  });
+  document.addEventListener("dragover", e=>{
+    const t = dropTarget(e); if(!t) return;
+    clearMarks();
+    if(t.bad){ try{ e.dataTransfer.dropEffect = "none"; }catch(err){} return; }
+    e.preventDefault();
+    try{ e.dataTransfer.dropEffect = "move"; }catch(err){}
+    if(t.over) t.over.classList.add(t.after ? "drop-after" : "drop-before"); else t.zone.classList.add("drop-on");
+  });
+  document.addEventListener("drop", e=>{
+    const t = dropTarget(e); clearMarks(); if(!t || t.bad) return;
+    e.preventDefault();
+    if(t.toDay!=="__general" && state.collapsed[t.toDay]) state.collapsed[t.toDay] = false;
+    if(moveItem(drag.day, drag.id, t.toDay, t.over && t.over.dataset.id, t.after)){ renderGeneral(); renderDays(renderNumbers()); }
+    drag = null;
+  });
+  document.addEventListener("dragend", ()=>{ clearMarks(); document.querySelectorAll(".dragging").forEach(el=>el.classList.remove("dragging")); drag = null; });
+
+  /* ---------- 編輯視窗 ---------- */
+  const dlg = $("editor");
+  let editing = null; // {day, id, isNew}
+  function openEditor(day, id, isNew){
+    const {it} = findItem(day, id); if(!it) return;
+    editing = {day, id, isNew:!!isNew};
+    const isMeal = it.kind==="meal";
+    const m = MEALS.find(x=>x.key===it.meal);
+    $("edTitle").textContent = isMeal ? `編輯${m.label}` : (isNew ? "新增行程" : "編輯行程");
+    $("edCatWrap").style.visibility = isMeal ? "hidden" : "visible";
+    $("edDayWrap").style.display = isMeal ? "none" : "";
+    $("edDay").innerHTML = dayOptions(); $("edDay").value = day;
+    const catSel = dlg.querySelector('[data-e="cat"]');
+    catSel.innerHTML = CATS.map(c=>`<option ${c===it.cat?"selected":""}>${c}</option>`).join("");
+    const curSel = dlg.querySelector('[data-e="cur"]');
+    curSel.innerHTML = `<option value="main">${esc(curName())}</option>` + (fxName()?`<option value="fx">${esc(fxName())}</option>`:"");
+    curSel.value = it.cur==="fx" && fxName() ? "fx" : "main";
+    ["time","title","desc","budget","actual","checkin","checkout"].forEach(f=>{ dlg.querySelector(`[data-e="${f}"]`).value = it[f] || ""; });
+    dlg.querySelector('[data-e="title"]').placeholder = isMeal ? `${m.label}的店名或地點` : "例如：北海道神宮";
+    $("edDelete").style.visibility = isMeal ? "hidden" : "visible";
+    $("edDelete").dataset.armed = ""; $("edDelete").textContent = "刪除";
+    updateStayBox(it);
+    dlg.showModal();
+    setTimeout(()=>dlg.querySelector('[data-e="title"]').focus(), 30);
+  }
+  function updateStayBox(it){
+    const show = it.kind!=="meal";
+    $("stayBox").style.display = show ? "" : "none";
+    if(!show) return;
+    const isLodging = it.cat==="住宿";
+    $("stayDates").style.display = isLodging ? "" : "none";
+    const days = dayList(), sel = new Set(spreadOf(it));
+    $("spChips").innerHTML = days.length
+      ? days.map((k,i)=>`<button type="button" data-sp="${k}" class="${sel.has(k)?"on":""}">D${i+1} ${labelDate(k)}</button>`).join("")
+      : `<span class="hint" style="margin:0">先在旅程設定填日期，才能選分攤的日子。</span>`;
+    const n = sel.size;
+    $("stayHint").textContent = n
+      ? `已選 ${n} ${unit(it)}，費用平均分攤（每${unit(it)} 1/${n}），算進這幾天的每日花費。`
+      : (isLodging ? "填入住與退房日，或直接點選要分攤的晚上。" : "點選要分攤的日子（例如雪具租借選滑雪的那幾天）。") + "沒選就算在項目所在的那一天。";
+  }
+  $("spChips").addEventListener("click", e=>{
+    const b = e.target.closest("[data-sp]"); if(!b || !editing) return;
+    const {it} = findItem(editing.day, editing.id); if(!it) return;
+    const set = new Set(spreadOf(it)), k = b.dataset.sp;
+    set.has(k) ? set.delete(k) : set.add(k);
+    it.spread = [...set].sort(); save(); updateStayBox(it);
+  });
+  $("spAll").onclick = ()=>{ if(!editing) return; const {it} = findItem(editing.day, editing.id); if(!it) return;
+    const days = dayList(); it.spread = it.cat==="住宿" ? days.slice(0,-1) : days; save(); updateStayBox(it); };
+  $("spNone").onclick = ()=>{ if(!editing) return; const {it} = findItem(editing.day, editing.id); if(!it) return;
+    it.spread = []; it.checkin = it.checkout = ""; dlg.querySelector('[data-e="checkin"]').value = ""; dlg.querySelector('[data-e="checkout"]').value = "";
+    save(); updateStayBox(it); };
+  $("edDay").addEventListener("change", e=>{
+    if(!editing) return;
+    const to = e.target.value;
+    if(to!==editing.day && moveItem(editing.day, editing.id, to)) editing.day = to;
+  });
+  dlg.addEventListener("input", e=>{
+    const f = e.target.dataset.e; if(!f || !editing) return;
+    const {it} = findItem(editing.day, editing.id); if(!it) return;
+    it[f] = e.target.value;
+    if(f==="checkin" && it.checkin && (!it.checkout || it.checkout <= it.checkin)){
+      const d = parseDate(it.checkin); d.setUTCDate(d.getUTCDate()+1); it.checkout = fmt(d);
+      dlg.querySelector('[data-e="checkout"]').value = it.checkout;
+    }
+    if((f==="checkin"||f==="checkout") && it.checkin && it.checkout) it.spread = range(it.checkin, it.checkout, false);
+    if(f==="cat"||f==="checkin"||f==="checkout") updateStayBox(it);
+    save();
+  });
+  $("edDelete").onclick = ()=>{
+    if(!editing) return;
+    const btn = $("edDelete");
+    if(btn.dataset.armed!=="1"){ btn.dataset.armed="1"; btn.textContent="再按一次確認刪除"; return; }
+    const {arr, idx} = findItem(editing.day, editing.id);
+    if(idx>=0) arr.splice(idx,1);
+    const ed = editing; editing = null; save(); closeEditor();
+  };
+  dlg.addEventListener("close", onEditorClosed);
+  function onEditorClosed(){
+    if(editing && editing.isNew){
+      const {arr, idx, it} = findItem(editing.day, editing.id);
+      if(it && !it.title && !it.desc && !num(it.budget) && !num(it.actual)) arr.splice(idx,1);
+    }
+    editing = null; save(); renderGeneral(); renderDays(renderNumbers());
+  }
+  dlg.addEventListener("click", e=>{ if(e.target===dlg) closeEditor(); });
+  function closeEditor(){ try{ dlg.close(); }catch(err){ dlg.removeAttribute("open"); onEditorClosed(); } }
+  $("edDone").addEventListener("click", closeEditor);
+  $("edClose").addEventListener("click", closeEditor);
+
+  /* ---------- 匯出 / 匯入 ---------- */
+  $("btnExport").onclick = ()=>{
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (state.title || "trip") + ".json";
+    a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  };
+  $("btnImport").onclick = ()=> $("fileImport").click();
+  $("fileImport").onchange = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{ state = migrate(Object.assign(blank(), JSON.parse(r.result))); save(); renderAll(); }
+      catch(err){ try{ alert("檔案格式不正確，請選擇用本工具下載的備份檔。"); }catch(e2){} }
+      e.target.value = "";
+    };
+    r.readAsText(f);
+  };
+  $("btnReset").onclick = ()=>{
+    const b = $("btnReset");
+    if(b.dataset.armed!=="1"){
+      b.dataset.armed="1"; b.textContent="再按一次清空（建議先備份）";
+      setTimeout(()=>{ b.dataset.armed=""; b.textContent="清空"; }, 4000); return;
+    }
+    b.dataset.armed=""; b.textContent="清空";
+    state = blank(); save(); renderAll();
+  };
+
+  /* ---------- PDF（瀏覽器列印 → 另存為 PDF） ---------- */
+  function buildPrint(){
+    const agg = aggregate(), c = esc(curName()), fx = fxName();
+    const catLabel = it => it.kind==="meal" ? ((MEALS.find(m=>m.key===it.meal)||{}).label || "餐") : esc(catOf(it));
+    const row = (it, frac, extra) => {
+      frac = frac==null ? 1 : frac;
+      const b = num(it.budget)*frac, a = num(it.actual)*frac, cl = esc(curOf(it));
+      return `<tr class="${extra?"share":""}"><td class="t">${extra?"":esc(it.time)}</td><td style="white-space:nowrap">${catLabel(it)}</td>
+        <td><b>${esc(it.title)||"—"}</b>${extra?`　<span class="d">${extra}</span>`:""}${!extra&&it.desc?`<div class="d">${esc(it.desc)}</div>`:""}</td>
+        <td class="n">${b?money(b)+" "+cl:""}</td><td class="n">${a?money(a)+" "+cl:""}</td></tr>`;
+    };
+    const head = `<tr><th>時間</th><th>類別</th><th>行程／介紹</th><th class="n">預算</th><th class="n">實際</th></tr>`;
+    const tot = (g, label) => `<tr class="tot"><td colspan="3">${label||"小計"}（${c}）</td><td class="n">${money(g?g.b:0)}</td><td class="n">${money(g?g.a:0)}</td></tr>`;
+
+    const list = dayList(), rows = dayRows(agg), cats = catTotals(agg);
+    let B=0, A=0; rows.forEach(r=>{ B+=r.g.b; A+=r.g.a; });
+    let html = `<h1 class="p-title">${esc(state.title)||"旅遊行程"}</h1>
+      <div class="p-sub">${list.length?`${esc(state.start)} ～ ${esc(list[list.length-1])}　共 ${list.length} 天`:""}
+      ${num(state.people)?`　${Math.floor(num(state.people))} 人`:""}
+      ${fx && num(state.fxRate)?`　匯率 1 ${c} = ${esc(state.fxRate)} ${esc(fx)}`:""}</div>
+      <div class="p-stats"><div>總預算 <b>${money(B)}</b> ${c}</div><div>實際花費 <b>${money(A)}</b> ${c}</div><div>差額 <b>${money(A-B)}</b> ${c}</div></div>`;
+    html += `<div class="p-day"><h3>每日花費統計 <small style="font-weight:400;font-size:9pt;color:#666">（分攤費用已平均算進各天）</small></h3><table class="p"><tr><th>日期</th><th class="n">預算</th><th class="n">實際</th><th class="n">差額</th></tr>` +
+      rows.map(r=>`<tr><td>${r.label}　${r.sub}</td><td class="n">${money(r.g.b)}</td><td class="n">${money(r.g.a)}</td><td class="n">${r.g.a?money(r.g.a-r.g.b):"—"}</td></tr>`).join("") +
+      `<tr class="tot"><td>合計（${c}）</td><td class="n">${money(B)}</td><td class="n">${money(A)}</td><td class="n">${A?money(A-B):"—"}</td></tr></table></div>`;
+    const used = cats.filter(x=>x.b||x.a);
+    if(used.length) html += `<div class="p-day"><h3>分類花費統計</h3><table class="p"><tr><th>分類</th><th class="n">預算</th><th class="n">實際</th><th class="n">實際占比</th></tr>` +
+      used.map(x=>`<tr><td>${x.cat}</td><td class="n">${money(x.b)}</td><td class="n">${money(x.a)}</td><td class="n">${pct(x.a,A)}</td></tr>`).join("") +
+      `<tr class="tot"><td>合計（${c}）</td><td class="n">${money(B)}</td><td class="n">${money(A)}</td><td class="n">${A?"100%":"—"}</td></tr></table></div>`;
+    if(state.general.length){
+      const note = state.general.some(isStay) ? `<div class="p-note">標示分攤的費用已平均算進各天，下方小計只算未分攤的部分。</div>` : "";
+      html += `<div class="p-day"><h3>行前／不分日的費用</h3>${note}<table class="p it">${head}${state.general.map(it=>row(it)).join("")}${tot(agg.by.__general,"未分攤小計")}</table></div>`;
+    }
+    list.forEach((k,i)=>{
+      const d = state.days[k]; if(!d) return;
+      const shares = agg.es.filter(e=>e.key===k && e.night && e.origin!==k);
+      html += `<div class="p-day"><h3>Day ${i+1}　${labelDate(k)}</h3>
+        ${d.note?`<div class="p-note">${esc(d.note)}</div>`:""}
+        <table class="p it">${head}${d.items.map(it=>row(it)).join("")}
+        ${shares.map(e=>row(e.it, e.frac, `分攤 第 ${e.night}/${e.nights} ${unit(e.it)}`)).join("")}${tot(agg.by[k])}</table></div>`;
+    });
+    $("printView").innerHTML = html;
+  }
+  window.addEventListener("beforeprint", buildPrint);
+  $("btnPrint").onclick = ()=>{
+    buildPrint();
+    try{ window.print(); }catch(err){}
+  };
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
