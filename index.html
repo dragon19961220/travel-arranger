@@ -299,6 +299,9 @@
   .place-box .inline input{flex:1}
   .gbtn{font-size:20px;text-decoration:none;padding:2px 6px}
   .place-box .hint{margin:0}
+  .place-box .src{color:#6f8a5a;font-size:12px}
+  details.adv{margin-top:14px;font-size:13px;color:var(--muted)}
+  details.adv summary{cursor:pointer}
   .chart-btn{padding:3px 12px;font-size:13px;white-space:nowrap;box-shadow:none;border-width:1px}
   dialog#chartDlg{border:1.5px solid var(--sumi);border-radius:var(--hand2);padding:0;width:min(1180px,96vw);max-height:94vh;
     background:var(--paper2);color:var(--ink);box-shadow:6px 6px 0 rgba(91,81,70,.18)}
@@ -411,6 +414,11 @@
       <label class="f"><span>匯率：1 <b id="lblCur1">TWD</b> = ? <b id="lblFx1">JPY</b></span><input id="fxRate" type="number" step="any" min="0" placeholder="4.5"></label>
       <label class="f">人數<input id="people" type="number" min="1" step="1" placeholder="2"></label>
     </div>
+    <details class="adv">
+      <summary>進階：Google 地圖金鑰（選填，讓座標改由 Google 地圖抓取）</summary>
+      <label class="f" style="margin-top:8px">Google Maps API 金鑰<input id="gmKey" placeholder="AIza…（沒填就用免費的 OpenStreetMap 抓座標）" autocomplete="off"></label>
+      <p class="hint" id="gmKeyHint">金鑰只存在你這台瀏覽器，不會放進備份檔，也不會被別人看到。</p>
+    </details>
     <p class="hint">填好出發和回程日期，下面就會自動展開每一天。點任一個行程可以編輯細節。資料會自動存在這個瀏覽器裡；換電腦或要分享時，請用「下載備份」。</p>
   </section>
 
@@ -463,11 +471,11 @@
       <label class="f" id="edDayWrap">日期（可移到別天）<select id="edDay"></select></label>
       <label class="f">名稱<input data-e="title" placeholder="例如：北海道神宮"></label>
       <div class="place-box">
-        <label class="f">地點（Google 地圖搜尋用，可填日文或英文店名）
-          <span class="inline"><input data-e="place" placeholder="例如：カムイスキーリンクス"><a class="gbtn" id="edMapLink" target="_blank" rel="noopener" title="在 Google 地圖查看">📍</a></span></label>
-        <label class="f">座標（畫航海圖用，選填）
-          <span class="inline"><input data-e="coord" placeholder="例如：43.7706, 142.3641"><button type="button" class="ghost" id="edGeo">自動查</button></span></label>
-        <p class="hint" id="coordHint">在 Google 地圖長按該地點，就會出現座標，複製貼上即可；也可以直接貼 Google 地圖網址。</p>
+        <label class="f">📍 Google 地圖（地標名稱或地址）
+          <span class="inline"><input data-e="place" placeholder="例如：カムイスキーリンクス／北海道旭川市神居町西丘112"><a class="gbtn" id="edMapLink" target="_blank" rel="noopener" title="在 Google 地圖查看">🗺️</a></span></label>
+        <label class="f"><span>座標 <small id="coordSrc" class="src"></small></span>
+          <span class="inline"><input data-e="coord" placeholder="填好地標後會自動抓取"><button type="button" class="ghost" id="edGeo">重新抓取</button></span></label>
+        <p class="hint" id="coordHint"></p>
       </div>
       <label class="f">簡單介紹<textarea data-e="desc" placeholder="地址、營業時間、訂位電話、注意事項…"></textarea></label>
       <div class="ed-row3">
@@ -549,7 +557,7 @@
       if(map[it.cat]) it.cat = map[it.cat];
       if(it.kind!=="meal" && !CATS.includes(it.cat)) it.cat = "其他";
       if(it.checkin==null) it.checkin = ""; if(it.checkout==null) it.checkout = "";
-      if(it.place==null) it.place = ""; if(it.coord==null) it.coord = "";
+      if(it.place==null) it.place = ""; if(it.coord==null) it.coord = ""; if(it.coordSrc==null) it.coordSrc = "";
       if(!Array.isArray(it.spread)){
         it.spread = (it.kind!=="meal" && it.cat==="住宿") ? range(it.checkin, it.checkout, false) : [];
       }
@@ -1051,6 +1059,10 @@
     }
     if((f==="checkin"||f==="checkout") && it.checkin && it.checkout) it.spread = range(it.checkin, it.checkout, false);
     if(f==="cat"||f==="checkin"||f==="checkout") updateStayBox(it);
+    if(f==="coord"){ it.coordSrc = it.coord ? "manual" : ""; }
+    if(f==="place"){
+      if(it.coordSrc!=="manual"){ clearTimeout(autoGeoTimer); autoGeoTimer = setTimeout(()=>fetchCoord(it), 900); }
+    }
     if(f==="place"||f==="coord"||f==="title") updatePlaceBox(it);
     save();
   });
@@ -1119,18 +1131,56 @@
   const stopQuery = s => s.place || (s.c ? `${s.c.lat},${s.c.lng}` : s.title);
 
   /* ---------- 自動查座標（OpenStreetMap Nominatim，每秒最多一次） ---------- */
+  const GM_KEY_STORE = "trip-planner-gmkey";
+  const gmKey = ()=>{ try{ return (localStorage.getItem(GM_KEY_STORE)||"").trim(); }catch(e){ return ""; } };
+  let gmLoading = null;
+  function loadGoogle(){
+    if(window.google && google.maps && google.maps.Geocoder) return Promise.resolve(true);
+    if(gmLoading) return gmLoading;
+    gmLoading = new Promise(res=>{
+      window.__gmReady = ()=>res(true);
+      window.gm_authFailure = ()=>{ gmAuthFailed = true; res(false); };
+      const sc = document.createElement("script");
+      sc.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(gmKey())}&libraries=places&language=zh-TW&loading=async&callback=__gmReady`;
+      sc.async = true; sc.onerror = ()=>res(false);
+      document.head.appendChild(sc);
+      setTimeout(()=>res(!!(window.google && google.maps && google.maps.Geocoder)), 10000);
+    });
+    return gmLoading;
+  }
+  let gmAuthFailed = false;
+  async function geocodeGoogle(q){
+    if(!(await loadGoogle()) || gmAuthFailed) return null;
+    try{
+      const {results} = await new google.maps.Geocoder().geocode({address:q, language:"zh-TW"});
+      if(results && results[0]){ const l = results[0].geometry.location;
+        return {lat:l.lat(), lng:l.lng(), name:results[0].formatted_address, src:"Google 地圖"}; }
+    }catch(e){}
+    try{   // 地標名稱查不到地址時，改用地點搜尋
+      if(google.maps.places && google.maps.places.Place && google.maps.places.Place.searchByText){
+        const {places} = await google.maps.places.Place.searchByText({textQuery:q, fields:["location","displayName","formattedAddress"], maxResultCount:1, language:"zh-TW"});
+        if(places && places[0] && places[0].location){ const l = places[0].location;
+          return {lat:l.lat(), lng:l.lng(), name:(places[0].displayName||"")+" "+(places[0].formattedAddress||""), src:"Google 地圖"}; }
+      }
+    }catch(e){}
+    return null;
+  }
   let geoBusy = Promise.resolve();
-  function geocode(q){
+  function geocodeOSM(q){
     const job = geoBusy.then(async ()=>{
       const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=zh-TW,ja,en&q=" + encodeURIComponent(q);
       try{
         const r = await fetch(url, {headers:{"Accept":"application/json"}});
         const j = await r.json();
-        return j && j[0] ? {lat:+j[0].lat, lng:+j[0].lon, name:j[0].display_name} : null;
+        return j && j[0] ? {lat:+j[0].lat, lng:+j[0].lon, name:j[0].display_name, src:"OpenStreetMap"} : null;
       }catch(e){ return null; }
     });
     geoBusy = job.then(()=>new Promise(r=>setTimeout(r,1100)));
     return job;
+  }
+  async function geocode(q){
+    if(gmKey() && !gmAuthFailed){ const r = await geocodeGoogle(q); if(r) return r; }
+    return geocodeOSM(q);
   }
   const fmtC = c => `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
 
@@ -1377,27 +1427,46 @@
     for(const s of missing){
       btn.textContent = `查詢中…（${++i}/${missing.length}）`;
       const r = await geocode(s.place || s.title);
-      if(r){ s.it.coord = fmtC(r); ok++; }
+      if(r){ s.it.coord = fmtC(r); s.it.coordSrc = r.src==="Google 地圖" ? "google" : "osm"; ok++; }
     }
     save(); renderDays(); renderChart();
     showToast(`查到 ${ok} 個地點的座標${ok<missing.length?`，${missing.length-ok} 個查不到，可以改填日文店名或貼上 Google 地圖座標`:""}`);
   });
 
   /* 編輯視窗：地圖連結與自動查座標 */
-  function updatePlaceBox(it){
+  function updatePlaceBox(it, msg){
     $("edMapLink").href = mapUrl(it);
     const c = parseCoord(it.coord);
-    $("coordHint").textContent = c ? `✓ 已辨識座標：北緯 ${c.lat.toFixed(4)}、東經 ${c.lng.toFixed(4)}，會畫進航路圖。`
-      : (it.coord ? "看不懂這個座標，請貼成「43.77, 142.36」或 Google 地圖網址。" : "在 Google 地圖長按該地點，就會出現座標，複製貼上即可；也可以直接貼 Google 地圖網址。");
+    const srcText = {google:"來自 Google 地圖", osm:"來自 OpenStreetMap", manual:"手動輸入", approx:"範本的約略位置，建議重新抓取"}[it.coordSrc] || "";
+    $("coordSrc").textContent = c && srcText ? `（${srcText}）` : "";
+    $("coordHint").textContent = msg || (c
+      ? `✓ 北緯 ${c.lat.toFixed(4)}、東經 ${c.lng.toFixed(4)}，會畫進航路圖。位置不對可以直接改座標，或按 🗺️ 到 Google 地圖長按該點複製座標貼上。`
+      : it.coord ? "看不懂這個座標，請填成「43.77, 142.36」，或直接貼 Google 地圖網址。"
+      : it.place ? "按「重新抓取」，或手動貼上座標。" : "填入地標名稱或地址後，會自動抓取座標。");
   }
-  $("edGeo").addEventListener("click", async ()=>{
-    if(!editing) return; const {it} = findItem(editing.day, editing.id); if(!it) return;
-    const q = it.place || it.title; if(!q){ $("coordHint").textContent = "先填地點或名稱，才能自動查。"; return; }
-    $("coordHint").textContent = "查詢中…";
+  let autoGeoTimer = null, autoGeoSeq = 0;
+  async function fetchCoord(it, force){
+    const q = (it.place || "").trim() || (force ? (it.title||"").trim() : "");
+    if(!q){ updatePlaceBox(it, "先填地標名稱或地址。"); return; }
+    if(it.coordSrc==="manual" && !force) return;
+    const seq = ++autoGeoSeq;
+    updatePlaceBox(it, `正在用${gmKey() && !gmAuthFailed ? " Google 地圖" : " OpenStreetMap"}抓取「${q}」的座標…`);
     const r = await geocode(q);
-    if(r){ it.coord = fmtC(r); dlg.querySelector('[data-e="coord"]').value = it.coord; save(); updatePlaceBox(it);
-      $("coordHint").textContent += `（找到：${r.name.split(",").slice(0,3).join(",")}）`; }
-    else $("coordHint").textContent = "查不到。可以改填日文或英文的正式名稱再試，或到 Google 地圖長按該地點複製座標貼上。";
+    if(seq !== autoGeoSeq) return;           // 使用者又改了地標，以最新的為準
+    const still = editing && findItem(editing.day, editing.id).it === it;
+    if(r){
+      it.coord = fmtC(r); it.coordSrc = r.src==="Google 地圖" ? "google" : "osm"; save();
+      if(still){ dlg.querySelector('[data-e="coord"]').value = it.coord;
+        updatePlaceBox(it, `✓ 已從${r.src}抓到：${String(r.name||"").split(",").slice(0,3).join(",")}。位置不對可以直接改座標。`); }
+    } else if(still){
+      updatePlaceBox(it, gmKey() && !gmAuthFailed
+        ? "Google 地圖查不到，請換個寫法（日文店名或完整地址），或手動貼上座標。"
+        : "OpenStreetMap 查不到這個地標。可以改填完整地址或日文名稱，或按 🗺️ 到 Google 地圖長按該點複製座標貼上；設定 Google 地圖金鑰會準很多。");
+    }
+  }
+  $("edGeo").addEventListener("click", ()=>{
+    if(!editing) return; const {it} = findItem(editing.day, editing.id); if(!it) return;
+    it.coordSrc = ""; fetchCoord(it, true);
   });
 
   /* ---------- PDF（瀏覽器列印 → 另存為 PDF） ---------- */
@@ -1460,6 +1529,15 @@
     }
     try{ window.print(); }catch(err){}
   };
+
+  try{ $("gmKey").value = gmKey(); }catch(e){}
+  $("gmKey").addEventListener("change", e=>{
+    try{ localStorage.setItem(GM_KEY_STORE, e.target.value.trim()); }catch(err){}
+    gmAuthFailed = false; gmLoading = null;
+    $("gmKeyHint").textContent = e.target.value.trim()
+      ? "已儲存。之後新填的地標會改用 Google 地圖抓座標（只存在這台瀏覽器）。"
+      : "已移除金鑰，改用免費的 OpenStreetMap 抓座標。";
+  });
 
   renderAll();
 })();
