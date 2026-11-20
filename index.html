@@ -291,6 +291,53 @@
   }
   @media print{#dayNav,#mbar{display:none !important}}
 
+  /* 地圖相關 */
+  .gmap{text-decoration:none;font-size:15px;line-height:1;padding:3px 4px;border-radius:6px;flex:0 0 auto}
+  .gmap:hover{background:rgba(216,205,187,.5)}
+  .place-box{display:grid;gap:10px;padding:12px 14px;border:1.5px dashed var(--line);border-radius:var(--hand)}
+  .place-box .inline{display:flex;gap:6px;align-items:center}
+  .place-box .inline input{flex:1}
+  .gbtn{font-size:20px;text-decoration:none;padding:2px 6px}
+  .place-box .hint{margin:0}
+  .chart-btn{padding:3px 12px;font-size:13px;white-space:nowrap;box-shadow:none;border-width:1px}
+  dialog#chartDlg{border:1.5px solid var(--sumi);border-radius:var(--hand2);padding:0;width:min(1180px,96vw);max-height:94vh;
+    background:var(--paper2);color:var(--ink);box-shadow:6px 6px 0 rgba(91,81,70,.18)}
+  dialog#chartDlg::backdrop{background:rgba(74,64,54,.45)}
+  .ch-head{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1.5px dashed var(--line)}
+  .ch-head b{font-size:18px;letter-spacing:.1em}
+  .ch-head select{width:auto;flex:0 1 240px}
+  .ch-head #chClose{margin-left:auto}
+  .ch-body{display:grid;grid-template-columns:1fr 290px;gap:16px;padding:16px 18px;max-height:calc(94vh - 64px);overflow:auto}
+  #chMap svg{width:100%;height:auto;display:block}
+  #chMap .empty{border:1.5px dashed var(--line);padding:60px 20px}
+  .ch-side ol{margin:0;padding:0;list-style:none}
+  .ch-side li{padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .ch-side .km{display:block;color:var(--muted);font-size:12px;margin:-2px 0 4px 32px}
+  .sb{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#b5533c;color:#f4e9d0;font-size:12px;margin-right:8px;vertical-align:1px}
+  .sb.stay{background:#4f6b3a;border-radius:3px;transform:rotate(45deg)} .sb.stay{font-size:0} .sb.stay::after{content:"宿";font-size:11px;transform:rotate(-45deg)}
+  .miss-t{font-size:13px;color:var(--muted);margin:12px 0 4px}
+  .miss{margin:0;padding-left:18px;font-size:13px;color:var(--muted)}
+  .ch-actions{display:grid;gap:8px;margin-top:14px}
+  .btnlike{display:block;text-align:center;text-decoration:none;color:var(--paper2);background:var(--sumi);border:1.5px solid var(--sumi);
+    border-radius:var(--hand);padding:7px 14px;box-shadow:2px 2px 0 rgba(91,81,70,.18)}
+  svg.chart text{font-family:"LXGW WenKai TC","Zen Maru Gothic",serif}
+  svg.chart .rh line{stroke:#7a5a3a;stroke-width:.5;opacity:.28}
+  svg.chart .gr line{stroke:#7a5a3a;stroke-width:.6;stroke-dasharray:1 4;opacity:.6}
+  svg.chart .gl{font-size:11px;fill:#6b4a2b;opacity:.85}
+  svg.chart .rt path:not(.arw){fill:none;stroke-width:2.6;stroke-dasharray:9 7;stroke-linecap:round}
+  svg.chart .mk{font-size:13px;fill:#f4e9d0;text-anchor:middle;font-weight:700}
+  svg.chart .lb{font-size:16px;fill:#3e2a1a;font-weight:700;paint-order:stroke;stroke:#f4e9d0;stroke-width:4px;stroke-linejoin:round}
+  svg.chart .cd{font-size:14px;fill:#3e2a1a;text-anchor:middle;font-weight:700}
+  svg.chart .ct{font-size:22px;fill:#3e2a1a;font-weight:700;letter-spacing:2px}
+  svg.chart .cs{font-size:13px;fill:#6b4a2b}
+  svg.chart .at{font-size:9px;fill:#6b4a2b;opacity:.8}
+  @media (max-width:720px){
+    .chart-btn{order:3;margin-left:auto}
+    dialog#chartDlg{width:100vw;max-width:100vw;max-height:94vh;margin:auto 0 0 0;border-radius:18px 22px 0 0 / 14px 18px 0 0}
+    .ch-body{grid-template-columns:1fr;padding:12px}
+    .ch-head{flex-wrap:wrap;padding:10px 14px}
+  }
+
   /* ---------- 列印 / PDF ---------- */
   #printView{display:none}
   @media print{
@@ -324,6 +371,10 @@
     table.p tr.share td{color:#5d6e4f;background:#eef2e6}
     table.p tr.tot td{font-weight:700;border-top:1.5px solid #5b5146;border-bottom:0}
     tr{break-inside:avoid}
+    .p-chart{margin:4px 0 8px;break-inside:avoid}
+    .p-chart svg{width:100%;height:auto;max-height:115mm}
+    .p-day{break-inside:auto}
+    #chartDlg{display:none !important}
   }
 </style>
 </head>
@@ -411,6 +462,13 @@
       </div>
       <label class="f" id="edDayWrap">日期（可移到別天）<select id="edDay"></select></label>
       <label class="f">名稱<input data-e="title" placeholder="例如：北海道神宮"></label>
+      <div class="place-box">
+        <label class="f">地點（Google 地圖搜尋用，可填日文或英文店名）
+          <span class="inline"><input data-e="place" placeholder="例如：カムイスキーリンクス"><a class="gbtn" id="edMapLink" target="_blank" rel="noopener" title="在 Google 地圖查看">📍</a></span></label>
+        <label class="f">座標（畫航海圖用，選填）
+          <span class="inline"><input data-e="coord" placeholder="例如：43.7706, 142.3641"><button type="button" class="ghost" id="edGeo">自動查</button></span></label>
+        <p class="hint" id="coordHint">在 Google 地圖長按該地點，就會出現座標，複製貼上即可；也可以直接貼 Google 地圖網址。</p>
+      </div>
       <label class="f">簡單介紹<textarea data-e="desc" placeholder="地址、營業時間、訂位電話、注意事項…"></textarea></label>
       <div class="ed-row3">
         <label class="f">預算<input type="number" step="any" min="0" data-e="budget" placeholder="0"></label>
@@ -438,6 +496,25 @@
   </div>
 </dialog>
 
+<dialog id="chartDlg">
+  <div class="ch-head">
+    <b>🧭 航路圖</b>
+    <select id="chDay"></select>
+    <button type="button" class="ghost" id="chClose" aria-label="關閉">✕</button>
+  </div>
+  <div class="ch-body">
+    <div id="chMap"></div>
+    <div class="ch-side">
+      <ol id="chStops"></ol>
+      <div id="chMissing"></div>
+      <div class="ch-actions">
+        <a class="btnlike" id="chGmap" target="_blank" rel="noopener">在 Google 地圖開啟整天路線</a>
+        <button type="button" id="chGeoAll">幫沒有座標的地點自動查座標</button>
+      </div>
+      <p class="hint">起點是前一晚的住宿，終點是當晚的住宿；只有填了座標的行程會畫進來。座標可以在編輯視窗貼上。底圖 © OpenStreetMap contributors。</p>
+    </div>
+  </div>
+</dialog>
 <div id="toast" role="status"><span></span><button type="button" id="toastUndo">復原</button></div>
 <div id="printView"></div>
 
@@ -472,6 +549,7 @@
       if(map[it.cat]) it.cat = map[it.cat];
       if(it.kind!=="meal" && !CATS.includes(it.cat)) it.cat = "其他";
       if(it.checkin==null) it.checkin = ""; if(it.checkout==null) it.checkout = "";
+      if(it.place==null) it.place = ""; if(it.coord==null) it.coord = "";
       if(!Array.isArray(it.spread)){
         it.spread = (it.kind!=="meal" && it.cat==="住宿") ? range(it.checkin, it.checkout, false) : [];
       }
@@ -494,7 +572,7 @@
   const uid = () => Math.random().toString(36).slice(2,10);
   function newItem(extra){
     return Object.assign({id:uid(), kind:"custom", meal:"", time:"", title:"", desc:"",
-      cat:"體驗", budget:"", actual:"", cur:"main", checkin:"", checkout:"", spread:[]}, extra||{});
+      cat:"體驗", budget:"", actual:"", cur:"main", checkin:"", checkout:"", spread:[], place:"", coord:""}, extra||{});
   }
 
   /* ---------- 日期 ---------- */
@@ -588,6 +666,8 @@
     return `<div class="item ${isMeal?"meal":""}" draggable="true" data-day="${dayKey}" data-id="${it.id}" data-act="edit">
       <div class="t">${esc(it.time)}</div>
       <div class="main">${tagHTML(it)}<span class="ttl ${it.title?"":"ph"}">${esc(it.title)||ph}</span>
+        ${(it.place||it.title||it.coord)?`<a class="gmap" href="${esc(mapUrl(it))}" target="_blank" rel="noopener" title="在 Google 地圖查看「${esc(it.place||it.title)}」">📍</a>`:""}
+        ${parseCoord(it.coord)?`<span class="has-desc" title="已有座標，會畫進航海圖">⚓</span>`:""}
         ${nights?`<span class="has-desc">${it.cat==="住宿"?"🛏":"↔"} 分攤 ${nights} ${unit(it)}</span>`:""}
         ${it.desc?`<span class="has-desc" title="${esc(it.desc)}">📝</span>`:""}</div>
       <div class="amt b"><span>預算</span>${amtHTML(it.budget,it)}</div>
@@ -641,6 +721,7 @@
         <div class="day-head" data-act="toggle" data-day="${key}">
           <div class="day-title"><span class="dno">DAY ${String(i+1).padStart(2,"0")}</span><small>${labelDate(key)}</small></div>
           <i class="day-line"></i>
+          <button type="button" class="chart-btn" data-chart="${key}" title="這天的航路圖">🧭 航路圖</button>
           <div class="day-sum">${sumText(agg.by[key])}<span class="caret">${col?"＋":"－"}</span></div>
         </div>
         <div class="day-body">
@@ -773,7 +854,7 @@
       save(); renderDays(); return;
     }
     const box = btn.closest(".item"); if(!box || !box.dataset.id) return;
-    if(act==="edit"){ if(e.target.closest("button")) return; openEditor(box.dataset.day, box.dataset.id); return; }
+    if(act==="edit"){ if(e.target.closest("button,a")) return; openEditor(box.dataset.day, box.dataset.id); return; }
     const {arr, idx} = findItem(box.dataset.day, box.dataset.id);
     if(idx<0) return;
     if(act==="del"){ deleteItem(box.dataset.day, box.dataset.id); return; }
@@ -917,11 +998,11 @@
     const curSel = dlg.querySelector('[data-e="cur"]');
     curSel.innerHTML = `<option value="main">${esc(curName())}</option>` + (fxName()?`<option value="fx">${esc(fxName())}</option>`:"");
     curSel.value = it.cur==="fx" && fxName() ? "fx" : "main";
-    ["time","title","desc","budget","actual","checkin","checkout"].forEach(f=>{ dlg.querySelector(`[data-e="${f}"]`).value = it[f] || ""; });
+    ["time","title","desc","budget","actual","checkin","checkout","place","coord"].forEach(f=>{ dlg.querySelector(`[data-e="${f}"]`).value = it[f] || ""; });
     dlg.querySelector('[data-e="title"]').placeholder = isMeal ? `${m.label}的店名或地點` : "例如：北海道神宮";
     $("edDelete").style.visibility = isMeal ? "hidden" : "visible";
     $("edDelete").dataset.armed = ""; $("edDelete").textContent = "刪除";
-    updateStayBox(it);
+    updateStayBox(it); updatePlaceBox(it);
     dlg.showModal(); updateMoveBtns();
     if(isNew || !matchMedia("(pointer:coarse)").matches) setTimeout(()=>dlg.querySelector('[data-e="title"]').focus(), 30);
   }
@@ -970,6 +1051,7 @@
     }
     if((f==="checkin"||f==="checkout") && it.checkin && it.checkout) it.spread = range(it.checkin, it.checkout, false);
     if(f==="cat"||f==="checkin"||f==="checkout") updateStayBox(it);
+    if(f==="place"||f==="coord"||f==="title") updatePlaceBox(it);
     save();
   });
   $("edDelete").onclick = ()=>{
@@ -1020,6 +1102,304 @@
   $("btnReset").onclick = e=> resetClick(e.currentTarget, "清空");
   document.querySelector(".do-reset").onclick = e=> resetClick(e.currentTarget, "清空所有資料");
 
+  /* ---------- Google 地圖 ---------- */
+  function parseCoord(str){
+    if(!str) return null;
+    str = String(str);
+    let m = str.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/) || str.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) ||
+            str.match(/(-?\d{1,2}\.\d+)\s*[,，\s]\s*(-?\d{1,3}\.\d+)/);
+    if(!m) return null;
+    const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+    return (Math.abs(lat)<=90 && Math.abs(lng)<=180) ? {lat, lng} : null;
+  }
+  function mapUrl(it){
+    const c = parseCoord(it.coord), q = it.place || it.title;
+    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q || (c ? `${c.lat},${c.lng}` : ""));
+  }
+  const stopQuery = s => s.place || (s.c ? `${s.c.lat},${s.c.lng}` : s.title);
+
+  /* ---------- 自動查座標（OpenStreetMap Nominatim，每秒最多一次） ---------- */
+  let geoBusy = Promise.resolve();
+  function geocode(q){
+    const job = geoBusy.then(async ()=>{
+      const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=zh-TW,ja,en&q=" + encodeURIComponent(q);
+      try{
+        const r = await fetch(url, {headers:{"Accept":"application/json"}});
+        const j = await r.json();
+        return j && j[0] ? {lat:+j[0].lat, lng:+j[0].lon, name:j[0].display_name} : null;
+      }catch(e){ return null; }
+    });
+    geoBusy = job.then(()=>new Promise(r=>setTimeout(r,1100)));
+    return job;
+  }
+  const fmtC = c => `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+
+  /* ---------- 每天的路線點 ---------- */
+  function prevDate(k){ const d = parseDate(k); d.setUTCDate(d.getUTCDate()-1); return fmt(d); }
+  function lodgingOn(dateKey){
+    const all = [...state.general]; Object.values(state.days).forEach(d=>all.push(...d.items));
+    return all.find(it=>it.kind!=="meal" && it.cat==="住宿" && spreadOf(it).includes(dateKey)) || null;
+  }
+  function dayStops(k){
+    const day = state.days[k]; if(!day) return {stops:[], missing:[]};
+    const stops = [], missing = [];
+    const add = (it, role) => {
+      const c = parseCoord(it.coord);
+      const s = {it, role, c, title: it.title || (role==="start"||role==="end" ? "住宿" : "未命名"), place: it.place};
+      if(!c){
+        const placeLike = it.place || role!=="stop" || ["體驗","購物","伴手禮","醫美","住宿"].includes(it.cat) && it.kind!=="meal";
+        if(placeLike && (it.title || it.place)) missing.push(s);
+        return;
+      }
+      const last = stops[stops.length-1];
+      if(last && Math.abs(last.c.lat-c.lat)<1e-5 && Math.abs(last.c.lng-c.lng)<1e-5) return;
+      stops.push(s);
+    };
+    const prev = lodgingOn(prevDate(k)); if(prev) add(prev, "start");
+    day.items.forEach(it=>{ if(it.cat!=="住宿" || it.kind==="meal") add(it, "stop"); else add(it, "stop"); });
+    const tonight = lodgingOn(k);
+    if(tonight){
+      const c = parseCoord(tonight.coord);
+      if(c) stops.push({it:tonight, role:"end", c, title:tonight.title||"住宿", place:tonight.place});
+      else if(!missing.some(m=>m.it===tonight)) missing.push({it:tonight, role:"end", title:tonight.title||"住宿", place:tonight.place});
+    }
+    // 起點與終點是同一間住宿時，終點只畫回程線
+    return {stops, missing};
+  }
+  function km(a,b){
+    const R=6371, toR=x=>x*Math.PI/180;
+    const dLat=toR(b.lat-a.lat), dLng=toR(b.lng-a.lng);
+    const h=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(h));
+  }
+
+  /* ---------- 航海圖（SVG：OSM 底圖＋羊皮紙＋羅盤＋虛線航路） ---------- */
+  const LEG_COLORS = ["#7a3b22","#4f6b3a","#3f5a7a","#8a5a2b","#6b4a7a","#9a4a4a"];
+  function chartSVG(legs, opt){
+    opt = opt || {};
+    const W = opt.W || 900, H = opt.H || 620, PAD = W < 700 ? 70 : 90;
+    const pts = []; legs.forEach(l=>l.stops.forEach(s=>pts.push(s.c)));
+    if(!pts.length) return "";
+    const TS = 256;
+    const proj = (c,z)=>{ const n=TS*Math.pow(2,z), r=c.lat*Math.PI/180;
+      return {x:(c.lng+180)/360*n, y:(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n}; };
+    let z = 15;
+    for(; z>2; z--){
+      const ps = pts.map(c=>proj(c,z));
+      const w = Math.max(...ps.map(p=>p.x))-Math.min(...ps.map(p=>p.x));
+      const h = Math.max(...ps.map(p=>p.y))-Math.min(...ps.map(p=>p.y));
+      if(w <= W-2*PAD-(W<700?40:120) && h <= H-2*PAD-(W<700?60:0)) break;
+    }
+    if(pts.length===1) z = Math.min(z, 13);
+    const ps = pts.map(c=>proj(c,z));
+    const cx = (Math.max(...ps.map(p=>p.x))+Math.min(...ps.map(p=>p.x)))/2 + 40;   // 留空間給右上羅盤
+    const cy = (Math.max(...ps.map(p=>p.y))+Math.min(...ps.map(p=>p.y)))/2;
+    const ox = cx - W/2, oy = cy - H/2;
+    const P = c=>{ const p=proj(c,z); return {x:p.x-ox, y:p.y-oy}; };
+    // 底圖圖磚
+    let tiles = "";
+    const n = Math.pow(2,z);
+    for(let tx=Math.floor(ox/TS); tx<=Math.floor((ox+W)/TS); tx++){
+      for(let ty=Math.floor(oy/TS); ty<=Math.floor((oy+H)/TS); ty++){
+        if(ty<0||ty>=n) continue;
+        const wx = ((tx%n)+n)%n;
+        tiles += `<image href="https://tile.openstreetmap.org/${z}/${wx}/${ty}.png" x="${tx*TS-ox}" y="${ty*TS-oy}" width="${TS}" height="${TS}"/>`;
+      }
+    }
+    // 經緯線
+    const unproj = (x,y)=>{ const n2=TS*Math.pow(2,z); const lng=(x+ox)/n2*360-180;
+      const lat=Math.atan(Math.sinh(Math.PI*(1-2*(y+oy)/n2)))*180/Math.PI; return {lat,lng}; };
+    const tl = unproj(0,0), br = unproj(W,H);
+    const span = Math.max(br.lng-tl.lng, tl.lat-br.lat);
+    const step = [0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10].find(s=>span/s<=6) || 10;
+    let grid = "";
+    for(let g=Math.ceil(tl.lng/step)*step; g<br.lng; g+=step){ const x=P({lat:tl.lat,lng:g}).x;
+      grid += `<line x1="${x}" y1="0" x2="${x}" y2="${H}"/><text x="${x+3}" y="${H-8}" class="gl">${g.toFixed(step<0.1?2:1)}°E</text>`; }
+    for(let g=Math.ceil(br.lat/step)*step; g<tl.lat; g+=step){ const y=P({lat:g,lng:tl.lng}).y;
+      grid += `<line x1="0" y1="${y}" x2="${W}" y2="${y}"/><text x="6" y="${y-3}" class="gl">${g.toFixed(step<0.1?2:1)}°N</text>`; }
+    // 羅盤（右上）與放射航向線
+    const R = W < 700 ? 40 : 58, CX = W-R-38, CY = R+38;
+    let rhumb = "";
+    for(let i=0;i<16;i++){ const a=i*Math.PI/8; rhumb += `<line x1="${CX}" y1="${CY}" x2="${CX+Math.sin(a)*1400}" y2="${CY-Math.cos(a)*1400}"/>`; }
+    const star = (r1,r2,rot,fill)=>{ let d=""; for(let i=0;i<8;i++){ const a=rot+i*Math.PI/4, r=i%2?r2:r1;
+      d += `${i?"L":"M"}${(CX+Math.sin(a)*r).toFixed(1)},${(CY-Math.cos(a)*r).toFixed(1)} `; } return `<path d="${d}Z" fill="${fill}"/>`; };
+    let points4 = "";
+    [0,1,2,3].forEach(i=>{ const a=i*Math.PI/2;
+      const tip={x:CX+Math.sin(a)*R,y:CY-Math.cos(a)*R}, l={x:CX+Math.sin(a-Math.PI/4)*10,y:CY-Math.cos(a-Math.PI/4)*10}, r={x:CX+Math.sin(a+Math.PI/4)*10,y:CY-Math.cos(a+Math.PI/4)*10};
+      points4 += `<path d="M${CX},${CY} L${l.x},${l.y} L${tip.x},${tip.y} Z" fill="#5b3a24"/><path d="M${CX},${CY} L${r.x},${r.y} L${tip.x},${tip.y} Z" fill="#e9dcbc" stroke="#5b3a24" stroke-width=".8"/>`; });
+    const compass = `<g class="compass">
+      <circle cx="${CX}" cy="${CY}" r="${R+14}" fill="rgba(244,233,208,.85)" stroke="#5b3a24" stroke-width="1.4"/>
+      <circle cx="${CX}" cy="${CY}" r="${R+8}" fill="none" stroke="#5b3a24" stroke-width=".6" stroke-dasharray="2 3"/>
+      ${star(R*.62,R*.18,Math.PI/8,"#b08a5a")}${points4}
+      <circle cx="${CX}" cy="${CY}" r="4" fill="#b5533c"/>
+      <text x="${CX}" y="${CY-R-18}" class="cd">北 N</text><text x="${CX}" y="${CY+R+28}" class="cd">南 S</text>
+      <text x="${CX+R+22}" y="${CY+5}" class="cd">東</text><text x="${CX-R-22}" y="${CY+5}" class="cd">西</text></g>`;
+    // 航線與標記
+    let routes = "", marks = "", labels = "";
+    const seen = new Map(); let no = 0;
+    legs.forEach((leg, li)=>{
+      const col = opt.multi ? LEG_COLORS[li % LEG_COLORS.length] : "#7a3b22";
+      for(let i=1;i<leg.stops.length;i++){
+        const a = P(leg.stops[i-1].c), b = P(leg.stops[i].c);
+        const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy); if(d<2) continue;
+        const k = Math.min(.22, 40/d+.08), mx=(a.x+b.x)/2 - dy*k, my=(a.y+b.y)/2 + dx*k;
+        routes += `<path d="M${a.x.toFixed(1)},${a.y.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}" stroke="${col}"/>`;
+        // 中段箭頭
+        const t=.55, qx=(1-t)*(1-t)*a.x+2*(1-t)*t*mx+t*t*b.x, qy=(1-t)*(1-t)*a.y+2*(1-t)*t*my+t*t*b.y;
+        const tx2=2*(1-t)*(mx-a.x)+2*t*(b.x-mx), ty2=2*(1-t)*(my-a.y)+2*t*(b.y-my);
+        const ang = Math.atan2(ty2,tx2)*180/Math.PI;
+        routes += `<path d="M-7,-5 L5,0 L-7,5 Z" fill="${col}" transform="translate(${qx.toFixed(1)},${qy.toFixed(1)}) rotate(${ang.toFixed(1)})" class="arw"/>`;
+      }
+      leg.stops.forEach((s, si)=>{
+        const p = P(s.c), key = s.c.lat.toFixed(4)+","+s.c.lng.toFixed(4);
+        if(seen.has(key)){ seen.get(key).nums.push(opt.multi ? `${leg.label}` : (si===leg.stops.length-1 && s.role==="end" ? "返" : String(++no))); return; }
+        const isStay = s.role==="start" || s.role==="end" || s.it.cat==="住宿";
+        const label = isStay ? "宿" : (opt.multi ? "•" : String(++no));
+        seen.set(key, {p, s, nums:[label], isStay});
+      });
+    });
+    // 全程模式：太近的點合併成一個，避免字疊在一起
+    let entries = [...seen.values()];
+    if(opt.multi){
+      const cl = [];
+      entries.forEach(v=>{
+        const c = cl.find(g=>Math.hypot(g.p.x-v.p.x, g.p.y-v.p.y) < 34);
+        if(c){ c.members.push(v); if(v.isStay) c.isStay = true; } else cl.push({p:v.p, s:v.s, isStay:v.isStay, nums:v.nums, members:[v]});
+      });
+      entries = cl.map(c=>{ c.extra = c.members.length>1 ? ` 等 ${c.members.length} 處` : ""; return c; });
+    }
+    const placed = [];
+    entries.forEach(v=>{
+      const {p, s, isStay} = v;
+      marks += isStay
+        ? `<g transform="translate(${p.x},${p.y})"><rect x="-13" y="-13" width="26" height="26" transform="rotate(45)" fill="#4f6b3a" stroke="#f4e9d0" stroke-width="2"/><text y="5" class="mk">宿</text></g>`
+        : `<g transform="translate(${p.x},${p.y})"><circle r="13" fill="#b5533c" stroke="#f4e9d0" stroke-width="2"/><circle r="16" fill="none" stroke="#b5533c" stroke-width=".8" stroke-dasharray="2 2"/><text y="5" class="mk">${v.nums[0]}</text></g>`;
+      let name = (s.place || s.title || "").replace(/[（(].*$/,"");
+      if(name.length>14) name = name.slice(0,13)+"…";
+      name += v.extra || "";
+      let lx = p.x+20, ly = p.y+5, anchor = "start";
+      if(lx + name.length*15 > W-10){ lx = p.x-20; anchor = "end"; }
+      const wid = name.length*15;
+      const hit = q => Math.abs(q.y-ly) < 20 && (anchor===q.anchor ? Math.abs(q.x-lx) < Math.max(wid,q.w) : Math.abs(q.x-lx) < (wid+q.w)/2);
+      for(let guard=0; guard<12 && placed.some(hit); guard++) ly += 21;
+      placed.push({x:lx, y:ly, w:wid, anchor});
+      labels += `<text x="${lx}" y="${ly}" text-anchor="${anchor}" class="lb">${esc(name)}</text>`;
+    });
+    // 標題框
+    const title = opt.title || "航路圖", sub = opt.sub || "";
+    const cart = `<g transform="translate(26,${H-96})"><rect width="${Math.max(220, title.length*20+60)}" height="70" rx="3" fill="rgba(244,233,208,.92)" stroke="#5b3a24" stroke-width="1.5"/>
+      <rect x="5" y="5" width="${Math.max(220, title.length*20+60)-10}" height="60" fill="none" stroke="#5b3a24" stroke-width=".7" stroke-dasharray="3 2"/>
+      <text x="18" y="34" class="ct">${esc(title)}</text><text x="18" y="55" class="cs">${esc(sub)}</text></g>`;
+    // 比例尺
+    const mpp = 156543.03392*Math.cos(((tl.lat+br.lat)/2)*Math.PI/180)/Math.pow(2,z);
+    const nice = [0.1,0.2,0.5,1,2,5,10,20,50,100,200,500,1000].find(v=>v*1000/mpp>=90) || 1000;
+    const sw = nice*1000/mpp;
+    const scale = `<g transform="translate(${W-sw-40},${H-30})"><rect width="${sw/2}" height="6" fill="#5b3a24"/><rect x="${sw/2}" width="${sw/2}" height="6" fill="#f4e9d0" stroke="#5b3a24"/>
+      <text x="0" y="-5" class="gl">0</text><text x="${sw}" y="-5" class="gl" text-anchor="end">${nice} km</text></g>`;
+    const uid = "c"+Math.random().toString(36).slice(2,7);
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(title)}">
+      <defs>
+        <filter id="${uid}s"><feColorMatrix type="matrix" values=".36 .55 .12 0 .06  .31 .5 .11 0 .04  .24 .4 .09 0 .01  0 0 0 1 0"/></filter>
+        <radialGradient id="${uid}v" cx="50%" cy="50%" r="72%"><stop offset="55%" stop-color="#6b4a2b" stop-opacity="0"/><stop offset="100%" stop-color="#6b4a2b" stop-opacity=".5"/></radialGradient>
+        <clipPath id="${uid}k"><rect width="${W}" height="${H}"/></clipPath>
+      </defs>
+      <g clip-path="url(#${uid}k)">
+        <rect width="${W}" height="${H}" fill="#efe2c4"/>
+        <g filter="url(#${uid}s)" opacity=".62">${tiles}</g>
+        <rect width="${W}" height="${H}" fill="#e8d5a8" opacity=".28"/>
+        <g class="rh">${rhumb}</g><g class="gr">${grid}</g>
+        <g class="rt">${routes}</g>${marks}${labels}${compass}${cart}${scale}
+        <rect width="${W}" height="${H}" fill="url(#${uid}v)" pointer-events="none"/>
+        <text x="${W-8}" y="${H-6}" text-anchor="end" class="at">© OpenStreetMap contributors</text>
+      </g>
+      <rect x="3" y="3" width="${W-6}" height="${H-6}" fill="none" stroke="#5b3a24" stroke-width="2"/>
+      <rect x="9" y="9" width="${W-18}" height="${H-18}" fill="none" stroke="#5b3a24" stroke-width=".7"/>
+    </svg>`;
+  }
+  function dayLabel(k){ const i = dayList().indexOf(k); return `DAY ${String(i+1).padStart(2,"0")}`; }
+  const smallChart = ()=> window.innerWidth < 720 ? {W:520, H:640} : null;
+  function chartForDay(k, size){
+    const {stops} = dayStops(k);
+    const first = stops[0], last = stops[stops.length-1];
+    const sub = `${labelDate(k)}　${first ? "自 "+(first.place||first.title).replace(/[（(].*$/,"").slice(0,10)+" 出航" : ""}`;
+    return chartSVG([{stops, label:dayLabel(k)}], Object.assign({title:`${dayLabel(k)}　航路圖`, sub}, size || {}));
+  }
+
+  /* ---------- 航路圖視窗 ---------- */
+  const cdlg = $("chartDlg");
+  let chartKey = null;
+  function openChart(k){
+    chartKey = k;
+    $("chDay").innerHTML = `<option value="__all">全程</option>` + dayList().map((d,i)=>`<option value="${d}">Day ${i+1}　${labelDate(d)}</option>`).join("");
+    $("chDay").value = k;
+    renderChart();
+    if(!cdlg.open) cdlg.showModal();
+  }
+  function renderChart(){
+    const k = chartKey;
+    if(k==="__all"){
+      const legs = dayList().map(d=>({stops:dayStops(d).stops, label:dayLabel(d).replace("DAY ","D")})).filter(l=>l.stops.length);
+      $("chMap").innerHTML = legs.length ? chartSVG(legs, Object.assign({multi:true, title:`${state.title||"旅程"}　全程航路圖`, sub:`${state.start} ～ ${state.end}`}, smallChart() || {}))
+        : `<div class="empty">還沒有任何行程填了座標。</div>`;
+      $("chStops").innerHTML = legs.map((l,i)=>`<li><b style="color:${LEG_COLORS[i%LEG_COLORS.length]}">${l.label}</b>　${l.stops.map(s=>esc((s.place||s.title).replace(/[（(].*$/,""))).join(" → ")}</li>`).join("");
+      $("chMissing").innerHTML = ""; $("chGmap").style.display = "none"; $("chGeoAll").style.display = "none";
+      return;
+    }
+    const {stops, missing} = dayStops(k);
+    $("chMap").innerHTML = stops.length ? chartForDay(k, smallChart()) : `<div class="empty">這天還沒有填座標的地點。<br>點下方按鈕自動查，或在編輯視窗貼上 Google 地圖的座標。</div>`;
+    let n = 0;
+    $("chStops").innerHTML = stops.map((s,i)=>{
+      const d = i ? `<small class="km">↓ 約 ${km(stops[i-1].c, s.c).toFixed(1)} km</small>` : "";
+      const badge = (s.role==="start"||s.role==="end"||s.it.cat==="住宿") ? `<span class="sb stay">宿</span>` : `<span class="sb">${++n}</span>`;
+      return `<li>${d}${badge}${esc(s.title)}${s.role==="start"?"（出發）":s.role==="end"?"（今晚住宿）":""}</li>`;
+    }).join("");
+    $("chMissing").innerHTML = missing.length
+      ? `<p class="miss-t">還沒有座標（不會畫進圖）：</p><ul class="miss">${missing.map(s=>`<li>${esc(s.title)}${s.place?`<small>（${esc(s.place)}）</small>`:""}</li>`).join("")}</ul>` : "";
+    const all = stops.map(stopQuery);
+    if(all.length>=2){
+      const wps = all.slice(1,-1).slice(0,9).map(encodeURIComponent).join("|");
+      $("chGmap").href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(all[0])}&destination=${encodeURIComponent(all[all.length-1])}${wps?`&waypoints=${wps}`:""}`;
+      $("chGmap").style.display = "";
+    } else $("chGmap").style.display = "none";
+    $("chGeoAll").style.display = missing.length ? "" : "none";
+    $("chGeoAll").disabled = false; $("chGeoAll").textContent = "幫沒有座標的地點自動查座標";
+  }
+  document.addEventListener("click", e=>{
+    const b = e.target.closest("[data-chart]"); if(!b) return;
+    e.stopPropagation(); openChart(b.dataset.chart);
+  }, true);
+  $("chDay").addEventListener("change", e=>{ chartKey = e.target.value; renderChart(); });
+  $("chClose").addEventListener("click", ()=>cdlg.close());
+  cdlg.addEventListener("click", e=>{ if(e.target===cdlg) cdlg.close(); });
+  $("chGeoAll").addEventListener("click", async ()=>{
+    const {missing} = dayStops(chartKey); const btn = $("chGeoAll");
+    btn.disabled = true; let ok = 0, i = 0;
+    for(const s of missing){
+      btn.textContent = `查詢中…（${++i}/${missing.length}）`;
+      const r = await geocode(s.place || s.title);
+      if(r){ s.it.coord = fmtC(r); ok++; }
+    }
+    save(); renderDays(); renderChart();
+    showToast(`查到 ${ok} 個地點的座標${ok<missing.length?`，${missing.length-ok} 個查不到，可以改填日文店名或貼上 Google 地圖座標`:""}`);
+  });
+
+  /* 編輯視窗：地圖連結與自動查座標 */
+  function updatePlaceBox(it){
+    $("edMapLink").href = mapUrl(it);
+    const c = parseCoord(it.coord);
+    $("coordHint").textContent = c ? `✓ 已辨識座標：北緯 ${c.lat.toFixed(4)}、東經 ${c.lng.toFixed(4)}，會畫進航路圖。`
+      : (it.coord ? "看不懂這個座標，請貼成「43.77, 142.36」或 Google 地圖網址。" : "在 Google 地圖長按該地點，就會出現座標，複製貼上即可；也可以直接貼 Google 地圖網址。");
+  }
+  $("edGeo").addEventListener("click", async ()=>{
+    if(!editing) return; const {it} = findItem(editing.day, editing.id); if(!it) return;
+    const q = it.place || it.title; if(!q){ $("coordHint").textContent = "先填地點或名稱，才能自動查。"; return; }
+    $("coordHint").textContent = "查詢中…";
+    const r = await geocode(q);
+    if(r){ it.coord = fmtC(r); dlg.querySelector('[data-e="coord"]').value = it.coord; save(); updatePlaceBox(it);
+      $("coordHint").textContent += `（找到：${r.name.split(",").slice(0,3).join(",")}）`; }
+    else $("coordHint").textContent = "查不到。可以改填日文或英文的正式名稱再試，或到 Google 地圖長按該地點複製座標貼上。";
+  });
+
   /* ---------- PDF（瀏覽器列印 → 另存為 PDF） ---------- */
   function buildPrint(){
     const agg = aggregate(), c = esc(curName()), fx = fxName();
@@ -1056,16 +1436,28 @@
     list.forEach((k,i)=>{
       const d = state.days[k]; if(!d) return;
       const shares = agg.es.filter(e=>e.key===k && e.night && e.origin!==k);
+      const st = dayStops(k).stops;
       html += `<div class="p-day"><h3><span class="dno">DAY ${String(i+1).padStart(2,"0")}</span>${labelDate(k)}</h3>
         ${d.note?`<div class="p-note">${esc(d.note)}</div>`:""}
+        ${st.length>=2?`<div class="p-chart">${chartForDay(k)}</div>`:""}
         <table class="p it">${head}${d.items.map(it=>row(it)).join("")}
         ${shares.map(e=>row(e.it, e.frac, `分攤 第 ${e.night}/${e.nights} ${unit(e.it)}`)).join("")}${tot(agg.by[k])}</table></div>`;
     });
     $("printView").innerHTML = html;
   }
   window.addEventListener("beforeprint", buildPrint);
-  $("btnPrint").onclick = ()=>{
+  $("btnPrint").onclick = async ()=>{
     buildPrint();
+    // 等航路圖的底圖載入（最多 6 秒）再開列印視窗
+    const urls = [...new Set([...$("printView").querySelectorAll("image")].map(im=>im.getAttribute("href")))];
+    if(urls.length){
+      showToast("正在準備航路圖…");
+      await Promise.race([
+        Promise.all(urls.map(u=>new Promise(r=>{ const im=new Image(); im.onload=im.onerror=r; im.src=u; }))),
+        new Promise(r=>setTimeout(r,6000))
+      ]);
+      $("toast").classList.remove("show");
+    }
     try{ window.print(); }catch(err){}
   };
 
